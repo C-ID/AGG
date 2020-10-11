@@ -26,7 +26,18 @@ contract ExchangeBase is IERC20 {
         IERC20[] destToken
     ) internal view returns (IERC20[][] pair)
     {
-        
+        if(from.length > 1 && destToken.length==1)
+        {
+            
+        }
+        else if(from.length==1 && destToken.length>1)
+        {
+
+        }
+        else if(fromToken.length == 1 && destToken.length==1)
+        {
+
+        }
     }
 }
 
