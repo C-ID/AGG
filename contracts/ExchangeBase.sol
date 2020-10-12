@@ -5,11 +5,6 @@ import "./interface/IUniswapV2Factory.sol";
 contract ExchangeBase is IERC20 {
 
     IUniswapV2Factory constant internal uniswapV2 = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f); 
-    mapping (string => address) exchangeList;
-
-    constructor(exchangeList _exchangelist) public {
-        _exchangelist["uniswapv2"] = uniswapV2
-    }
     
     function _getMulitExpectedReturn(
         IERC20[] fromToken,
