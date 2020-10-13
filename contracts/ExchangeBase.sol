@@ -3,9 +3,13 @@ pragma solidity ^0.5.0;
 import "./interface/IUniswapV2Factory.sol";
 
 contract ExchangeBase is IERC20 {
-
-    IUniswapV2Factory constant internal uniswapV2 = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f); 
     
+    //Uniswapv2 Exchang address
+    IUniswapV2Factory constant internal uniswapV2 = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f); 
+    //Balancer Exchang address
+    IBalancerRegistry constant internal balancerRegistry = IBalancerRegistry(0x65e67cbc342712DF67494ACEfc06fe951EE93982);
+    IBalancerHelper constant internal balancerHelper = IBalancerHelper(0xA961672E8Db773be387e775bc4937C678F3ddF9a);
+
     function _getMulitExpectedReturn(
         IERC20[] fromToken,
         IERC20[] destToken,

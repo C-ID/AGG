@@ -26,17 +26,14 @@ contract BalancerExchange is ExchangeBase{
         uint256 fromWeight = pool.getDenormalizedWeight(fromToken);
         uint256 destWeight = pool.getDenormalizedWeight(destToken);
 
-        rets = new uint256[](amounts.length);
-        for (uint i = 0; i < amounts.length && amounts[i].mul(2) <= fromBalance; i++) {
-            rets[i] = BalancerLib.calcOutGivenIn(
-                fromBalance,
-                fromWeight,
-                destBalance,
-                destWeight,
-                amounts[i],
-                swapFee
-            );
-        }
+        ret = BalancerLib.calcOutGivenIn(
+            fromBalance,
+            fromWeight,
+            destBalance,
+            destWeight,
+            amounts,
+            swapFee
+        );
     }
 
     function _calculateBalancer(
@@ -61,6 +58,64 @@ contract BalancerExchange is ExchangeBase{
         );
     }
 
+    function _swapOnBalancerX(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount,
+        uint256 /*flags*/,
+        uint256 poolIndex
+    ) internal {
+        address[] memory pools = balancerRegistry.getBestPoolsWithLimit(
+            address(fromToken.isETH() ? weth : fromToken),
+            address(destToken.isETH() ? weth : destToken),
+            poolIndex + 1
+        );
+
+        if (fromToken.isETH()) {
+            weth.deposit.value(amount)();
+        }
+
+        (fromToken.isETH() ? weth : fromToken).universalApprove(pools[poolIndex], amount);
+        IBalancerPool(pools[poolIndex]).swapExactAmountIn(
+            fromToken.isETH() ? weth : fromToken,
+            amount,
+            destToken.isETH() ? weth : destToken,
+            0,
+            uint256(-1)
+        );
+
+        if (destToken.isETH()) {
+            weth.withdraw(weth.balanceOf(address(this)));
+        }
+    }
+
+    function _swapOnBalancer1(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount,
+        uint256 flags
+    ) internal {
+        _swapOnBalancerX(fromToken, destToken, amount, flags, 0);
+    }
+
+    function _swapOnBalancer2(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount,
+        uint256 flags
+    ) internal {
+        _swapOnBalancerX(fromToken, destToken, amount, flags, 1);
+    }
+
+    function _swapOnBalancer3(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount,
+        uint256 flags
+    ) internal {
+        _swapOnBalancerX(fromToken, destToken, amount, flags, 2);
+    }
+
 
     function _getMulitExpectedReturn(
         IERC20[] fromToken,
@@ -76,7 +131,7 @@ contract BalancerExchange is ExchangeBase{
         {
             for(uint i=0; i<_pair.length; i++)
             {
-                _res += _calculateUniswapV2(_pair[i][1], _pair[i][0], amounts[i]);
+                _res += _calculateBalancer(_pair[i][1], _pair[i][0], amounts[i], 0);
             }
             rets.push(_res);
         }
@@ -84,7 +139,7 @@ contract BalancerExchange is ExchangeBase{
         {
             for(uint i=0; i<_pair.length; i++)
             {
-                rets.push(_calculateUniswapV2(_pair[i][0], _pair[i][1], amounts[i]));
+                rets.push(_calculateBalancer(_pair[i][0], _pair[i][1], amounts[i], 0));
             }
         }
     }
@@ -105,7 +160,7 @@ contract BalancerExchange is ExchangeBase{
         {
             for(uint i=0; i<_pair.length; i++)
             {
-                _res += _swapOnUniswapV2Internal(_pair[i][1], _pair[i][0], amounts[i]);
+                _res += _swapOnBalancerX(_pair[i][1], _pair[i][0], amounts[i], 0);
             }
             rets.push(_res);
         }
@@ -113,7 +168,7 @@ contract BalancerExchange is ExchangeBase{
         {
             for(uint i=0; i<_pair.length; i++)
             {
-                rets.push(_swapOnUniswapV2Internal(_pair[i][0], _pair[i][1], amounts[i]));
+                rets.push(_swapOnBalancerX(_pair[i][0], _pair[i][1], amounts[i], 0));
             }
         }
     }
