@@ -2,9 +2,9 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../interface/IUniswapV2Factory.sol";
+import "../interfaces/uniswapv2/IUniswapV2Factory.sol";
 import "./UniversalERC20.sol";
-import "./Exchange.sol"
+import "./Exchange.sol";
 
 
 contract Controller is IERC20, Ownable{
@@ -55,3 +55,4 @@ contract Controller is IERC20, Ownable{
         require(msg.sender == exchange, "!exchange");
         exchange._muiltSwap(fromToken, destToken, amount);
     }
+}

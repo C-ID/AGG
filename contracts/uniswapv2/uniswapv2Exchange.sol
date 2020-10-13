@@ -36,7 +36,7 @@ contract Uniswapv2Exchange is ExchangeBase{
     }
 
     function calculateOneVsMuilt(){
-        
+
     }
     
     function _getMulitExpectedReturn(
@@ -57,6 +57,7 @@ contract Uniswapv2Exchange is ExchangeBase{
         uint256[] memory amounts,
         uint256 /*flags*/
     ) internal view returns(uint256[] memory rets){
+
 
 
     }
