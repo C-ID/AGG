@@ -3,7 +3,7 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "contracts/UniversalERC20.sol";
+import "../../contracts/UniversalERC20.sol";
 
 
 interface IUniswapV2Exchange {

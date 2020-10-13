@@ -4,22 +4,29 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/uniswapv2/IUniswapV2Factory.sol";
 import "./UniversalERC20.sol";
-import "./Exchange.sol";
+import "./ExchangeBase.sol";
+import "./uniswapv2/uniswapv2Exchange.sol";
+
 
 
 contract Controller is IERC20, Ownable{
 
+    string public exchangeName;
+    mapping (string => address) warehouse;
 
-    Exchange public exchange;
 
-    constructor(address _exchange) public {
+    constructor(string _exchangeName) public {
         governance = msg.sender;
-        exchange = _exchange;
+        registExchange();
     }
 
-    function setExchange(address _exchange) public {
+    function registExchange() internal view{ 
+        warehouse["uniswapv2"] = new Uniswapv2Exchange();
+    }
+
+    function setExchange(string _exchangename) public {
         require(msg.sender == governance, "!governance");
-        exchange = _exchange;
+        exchangeName = _exchangename;
     }
 
     function getMulitExpectedReturn(
@@ -34,8 +41,8 @@ contract Controller is IERC20, Ownable{
         )
     {
         require(fromToken.length <=3 || destToken <= 3 || amount <=3, "!Invalid Parameter");
-        require(msg.sender == exchange, "!exchange");
-        returnAmount = exchange._getMulitExpectedReturn(fromToken, destToken, amount);
+        require(msg.sender == exchangeName, "!exchange");
+        returnAmount = warehouse[exchangeName]._getMulitExpectedReturn(fromToken, destToken, amount);
     }
 
 
@@ -45,14 +52,13 @@ contract Controller is IERC20, Ownable{
         uint256[] amount
     )
         public
-        view
+        payable
         returns(
-            uint256 returnAmount,
-            uint256[] memory distribution
+            uint256 returnAmount
         )
     {
         require(fromToken.length <=3 || destToken <= 3 || amount <=3, "!Invalid Parameter");
-        require(msg.sender == exchange, "!exchange");
-        exchange._muiltSwap(fromToken, destToken, amount);
+        require(msg.sender == exchangeName, "!exchange name");
+        warehouse[exchangeName]._muiltSwap(fromToken, destToken, amount);
     }
 }

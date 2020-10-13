@@ -1,6 +1,7 @@
 pragma solidity ^0.5.0;
 
 import "./IUniswapV2Exchange.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 interface IUniswapV2Factory {

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.5.0;
 
-import "./interface/IUniswapV2Factory.sol";
+import "../../interfaces/uniswapv2/IUniswapV2Factory.sol";
 
 
 contract Uniswapv2Exchange is ExchangeBase{
@@ -10,8 +10,7 @@ contract Uniswapv2Exchange is ExchangeBase{
     function _calculateUniswapV2(
         IERC20 fromToken,
         IERC20 destToken,
-        uint256 memory amounts,
-        uint256 /*flags*/
+        uint256 amounts
     ) internal view returns(uint256[] memory rets) {
         rets = new uint256[](amounts.length);
 
@@ -21,7 +20,7 @@ contract Uniswapv2Exchange is ExchangeBase{
         if (exchange != IUniswapV2Exchange(0)) {
             uint256 fromTokenBalance = fromTokenReal.universalBalanceOf(address(exchange));
             uint256 destTokenBalance = destTokenReal.universalBalanceOf(address(exchange));
-            rets[i] = _calculateUniswapFormula(fromTokenBalance, destTokenBalance, amounts[i]);
+            rets = _calculateUniswapFormula(fromTokenBalance, destTokenBalance, amounts);
             return (rets);
         }
     }
@@ -35,19 +34,31 @@ contract Uniswapv2Exchange is ExchangeBase{
         );
     }
 
-    function calculateOneVsMuilt(){
-
-    }
     
     function _getMulitExpectedReturn(
         IERC20[] fromToken,
         IERC20[] destToken,
-        uint256[] memory amounts,
-        uint256 /*flags*/
+        uint256[] memory amounts
     ) internal view returns(uint256[] memory rets){
-        require(fromToken.length <=3 || destToken.length <=3 || amount.length <= 3, "!Invalid Parameter")
-        if (fromToken.length > 1 && destToken.length == 1) {
-            
+        require(fromToken.length <=3 || destToken.length <=3 || amount.length <= 3, "!Invalid Parameter");
+        IERC20[][] _pair;
+        bool reserve;
+        uint256 _res = 0;
+        (_pair, reserve) = parsingTokenList(fromToken, destToken);
+        if(reserve)
+        {
+            for(uint i=0; i<_pair.length; i++)
+            {
+                _res += _calculateUniswapV2(_pair[i][1], _pair[i][0], amounts[i]);
+            }
+            rets.push(_res);
+        }
+        else
+        {
+            for(uint i=0; i<_pair.length; i++)
+            {
+                rets.push(_calculateUniswapV2(_pair[i][0], _pair[i][1], amounts[i]));
+            }
         }
     }
 
@@ -58,15 +69,33 @@ contract Uniswapv2Exchange is ExchangeBase{
         uint256 /*flags*/
     ) internal view returns(uint256[] memory rets){
 
-
-
+        require(fromToken.length <=3 || destToken.length <=3 || amount.length <= 3, "!Invalid Parameter");
+        IERC20[][] _pair;
+        bool reserve;
+        uint256 _res = 0;
+        (_pair, reserve) = parsingTokenList(fromToken, destToken);
+        
+        if(reserve)
+        {
+            for(uint i=0; i<_pair.length; i++)
+            {
+                _res += _swapOnUniswapV2Internal(_pair[i][1], _pair[i][0], amounts[i]);
+            }
+            rets.push(_res);
+        }
+        else
+        {
+            for(uint i=0; i<_pair.length; i++)
+            {
+                rets.push(_swapOnUniswapV2Internal(_pair[i][0], _pair[i][1], amounts[i]));
+            }
+        }
     }
 
     function _swapOnUniswapV2Internal(
         IERC20 fromToken,
         IERC20 destToken,
-        uint256 amount,
-        uint256 /*flags*/
+        uint256 amount
     ) internal returns(uint256 returnAmount) {
         if (fromToken.isETH()) {
             weth.deposit.value(amount)();

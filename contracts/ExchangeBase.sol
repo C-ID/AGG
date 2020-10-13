@@ -1,6 +1,7 @@
 
 pragma solidity ^0.5.0;
-import "./interface/IUniswapV2Factory.sol"
+import "../interfaces/uniswapv2/IUniswapV2Factory.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract ExchangeBase is IERC20 {
 
@@ -29,19 +30,19 @@ contract ExchangeBase is IERC20 {
         if(from.length > 1 && destToken.length==1)
         {
             for(uint i = 0; i < from.length; i++){
-                pair[from[i]] = destToken[0]
+                pair[from[i]] = destToken[0];
             }
             
         }
         else if(from.length==1 && destToken.length>1)
         {
             for(uint i = 0; i < destToken.length; i++){
-                pair[from[0]] = destToken[0]
+                pair[from[0]] = destToken[0];
             }
         }
         else if(fromToken.length == 1 && destToken.length==1)
         {
-            pair[fromToken[0]] = destToken[0]
+            pair[fromToken[0]] = destToken[0];
         }
     }
 }
