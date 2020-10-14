@@ -49,7 +49,7 @@ contract ExchangeBase{
     function parsingTokenList(
         IERC20[] memory fromToken,
         IERC20[] memory destToken
-    ) internal view returns (IERC20[][] memory pair, bool reverse)
+    ) internal pure returns (IERC20[][] memory pair, bool reverse)
     {
         reverse = false;
         if(fromToken.length > 1 && destToken.length==1)
