@@ -3,7 +3,7 @@
 pragma solidity ^0.5.0;
 
 import "../../interfaces/uniswapv2/IUniswapV2Factory.sol";
-
+import "../ExchangeBase.sol";
 
 contract Uniswapv2Exchange is ExchangeBase{
 
@@ -36,11 +36,11 @@ contract Uniswapv2Exchange is ExchangeBase{
 
     
     function _getMulitExpectedReturn(
-        IERC20[] fromToken,
-        IERC20[] destToken,
+        IERC20[] memory fromToken,
+        IERC20[] memory destToken,
         uint256[] memory amounts
     ) internal view returns(uint256[] memory rets){
-        require(fromToken.length <=3 || destToken.length <=3 || amount.length <= 3, "!Invalid Parameter");
+        require(fromToken.length <=3 || destToken.length <=3 || amounts.length <= 3, "!Invalid Parameter");
         IERC20[][] _pair;
         bool reserve;
         uint256 _res = 0;
@@ -63,14 +63,14 @@ contract Uniswapv2Exchange is ExchangeBase{
     }
 
     function _muiltSwap(
-        IERC20[] fromToken,
-        IERC20[] destToken,
+        IERC20[] memory fromToken,
+        IERC20[] memory destToken,
         uint256[] memory amounts,
         uint256 /*flags*/
     ) internal view returns(uint256[] memory rets){
 
-        require(fromToken.length <=3 || destToken.length <=3 || amount.length <= 3, "!Invalid Parameter");
-        IERC20[][] _pair;
+        require(fromToken.length <=3 || destToken.length <=3 || amounts.length <= 3, "!Invalid Parameter");
+        IERC20[][] memory _pair = new IERC20[][];
         bool reserve;
         uint256 _res = 0;
         (_pair, reserve) = parsingTokenList(fromToken, destToken);

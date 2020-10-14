@@ -1,0 +1,6 @@
+*.ini
+
+#artifacts
+contracts/artifacts/
+interfaces/balancer/artifacts/
+interfaces/uniswapv2/artifacts/

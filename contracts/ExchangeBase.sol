@@ -1,7 +1,8 @@
 
 pragma solidity ^0.5.0;
+
 import "../interfaces/uniswapv2/IUniswapV2Factory.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/token/ERC20/IERC20.sol";
 
 contract ExchangeBase is IERC20 {
 
@@ -9,40 +10,51 @@ contract ExchangeBase is IERC20 {
     mapping (uint => address) tokenlist;
     
     function _getMulitExpectedReturn(
-        IERC20[] fromToken,
-        IERC20[] destToken,
+        IERC20[] memory fromToken,
+        IERC20[] memory destToken,
         uint256[] memory amounts,
         uint256 /*flags*/
     ) internal view returns(uint256[] memory rets);
 
     function _muiltSwap(
-        IERC20[] fromToken,
-        IERC20[] destToken,
+        IERC20[] memory fromToken,
+        IERC20[] memory destToken,
         uint256[] memory amounts,
         uint256 /*flags*/
     ) internal view returns(uint256[] memory rets);
 
     function parsingTokenList(
-        IERC20[] fromToken,
-        IERC20[] destToken
-    ) internal view returns (IERC20[][] pair)
+        IERC20[] memory fromToken,
+        IERC20[] memory destToken
+    ) internal pure returns (IERC20[][] memory pair)
     {
-        if(from.length > 1 && destToken.length==1)
+        if(fromToken.length > 1 && destToken.length==1)
         {
-            for(uint i = 0; i < from.length; i++){
-                pair[from[i]] = destToken[0];
+            // uint256 len = fromToken.length;
+            // IERC20[][] memory pair = new IERC20[][](len);
+            for(uint i = 0; i < fromToken.length; i++){
+                pair[i] = new IERC20[](2);
+                pair[i][0] = fromToken[i];
+                pair[i][1] = destToken[0];
             }
             
         }
-        else if(from.length==1 && destToken.length>1)
+        else if(fromToken.length==1 && destToken.length>1)
         {
+            // uint256 len = fromToken.length;
+            // IERC20[][] memory pair = new IERC20[][](len);
             for(uint i = 0; i < destToken.length; i++){
-                pair[from[0]] = destToken[0];
+                pair[i] = new IERC20[](2);
+                pair[i][0] = fromToken[i];
+                pair[i][1] = destToken[0];
             }
         }
         else if(fromToken.length == 1 && destToken.length==1)
         {
-            pair[fromToken[0]] = destToken[0];
+            // IERC20[][] memory pair = new IERC20[][](1);
+            pair[0] = new IERC20[](2);
+            pair[0][0] = fromToken[0];
+            pair[0][1] = destToken[0];
         }
     }
 }
