@@ -3,4 +3,5 @@
 #artifacts
 contracts/artifacts/
 interfaces/balancer/artifacts/
+contracts/uniswapv2/artifacts/
 interfaces/uniswapv2/artifacts/

@@ -3,17 +3,18 @@
 pragma solidity ^0.5.0;
 
 import "../../interfaces/uniswapv2/IUniswapV2Factory.sol";
+import "../../interfaces/uniswapv2/IUniswapV2Exchange.sol";
 import "../ExchangeBase.sol";
 
 contract Uniswapv2Exchange is ExchangeBase{
+    
+    using UniswapV2ExchangeLib for IUniswapV2Exchange;
 
     function _calculateUniswapV2(
         IERC20 fromToken,
         IERC20 destToken,
         uint256 amounts
-    ) internal view returns(uint256[] memory rets) {
-        rets = new uint256[](amounts.length);
-
+    ) internal view returns(uint256 rets) {
         IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
         IERC20 destTokenReal = destToken.isETH() ? weth : destToken;
         IUniswapV2Exchange exchange = uniswapV2.getPair(fromTokenReal, destTokenReal);
@@ -39,26 +40,27 @@ contract Uniswapv2Exchange is ExchangeBase{
         IERC20[] memory fromToken,
         IERC20[] memory destToken,
         uint256[] memory amounts
-    ) internal view returns(uint256[] memory rets){
+    ) public view returns(uint256[] memory rets){
         require(fromToken.length <=3 || destToken.length <=3 || amounts.length <= 3, "!Invalid Parameter");
-        IERC20[][] _pair;
-        bool reserve;
-        uint256 _res = 0;
-        (_pair, reserve) = parsingTokenList(fromToken, destToken);
+     
+        (IERC20[][] memory _pair, bool reserve) = parsingTokenList(fromToken, destToken);
+        rets = new uint256[](_pair.length);
         if(reserve)
         {
+            
             for(uint i=0; i<_pair.length; i++)
             {
-                _res += _calculateUniswapV2(_pair[i][1], _pair[i][0], amounts[i]);
+              rets[i] = _calculateUniswapV2(_pair[i][1], _pair[i][0], amounts[i]);
             }
-            rets.push(_res);
+           return rets;
         }
         else
         {
             for(uint i=0; i<_pair.length; i++)
             {
-                rets.push(_calculateUniswapV2(_pair[i][0], _pair[i][1], amounts[i]));
+                rets[i] = _calculateUniswapV2(_pair[i][0], _pair[i][1], amounts[i]);
             }
+            return rets;
         }
     }
 
@@ -67,27 +69,23 @@ contract Uniswapv2Exchange is ExchangeBase{
         IERC20[] memory destToken,
         uint256[] memory amounts,
         uint256 /*flags*/
-    ) internal view returns(uint256[] memory rets){
+    ) public payable returns(uint256[] memory rets){
 
-        require(fromToken.length <=3 || destToken.length <=3 || amounts.length <= 3, "!Invalid Parameter");
-        IERC20[][] memory _pair = new IERC20[][];
-        bool reserve;
-        uint256 _res = 0;
-        (_pair, reserve) = parsingTokenList(fromToken, destToken);
+        (IERC20[][] memory _pair, bool reserve) = parsingTokenList(fromToken, destToken);
+        rets = new uint256[](_pair.length);
         
         if(reserve)
         {
             for(uint i=0; i<_pair.length; i++)
             {
-                _res += _swapOnUniswapV2Internal(_pair[i][1], _pair[i][0], amounts[i]);
+                rets[i] = _swapOnUniswapV2Internal(_pair[i][1], _pair[i][0], amounts[i]);
             }
-            rets.push(_res);
         }
         else
         {
             for(uint i=0; i<_pair.length; i++)
             {
-                rets.push(_swapOnUniswapV2Internal(_pair[i][0], _pair[i][1], amounts[i]));
+                rets[i] = _swapOnUniswapV2Internal(_pair[i][0], _pair[i][1], amounts[i]);
             }
         }
     }
@@ -100,7 +98,7 @@ contract Uniswapv2Exchange is ExchangeBase{
         if (fromToken.isETH()) {
             weth.deposit.value(amount)();
         }
-
+        // IUniswapV2Exchange exchange = IUniswapV2Exchange(0xa6f3ef841d371a82ca757FaD08efc0DeE2F1f5e2);
         IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
         IERC20 toTokenReal = destToken.isETH() ? weth : destToken;
         IUniswapV2Exchange exchange = uniswapV2.getPair(fromTokenReal, toTokenReal);

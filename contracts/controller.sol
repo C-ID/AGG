@@ -3,6 +3,7 @@ pragma solidity ^0.5.0;
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/math/SafeMath.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/token/ERC20/IERC20.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/ownership/Ownable.sol";
 import "../interfaces/uniswapv2/IUniswapV2Factory.sol";
 import "./UniversalERC20.sol";
 import "./ExchangeBase.sol";
@@ -16,8 +17,7 @@ contract Controller is IERC20, Ownable{
     mapping (string => address) warehouse;
 
 
-    constructor(string _exchangeName) public {
-        governance = msg.sender;
+    constructor() public {
         registExchange();
     }
 
@@ -25,20 +25,19 @@ contract Controller is IERC20, Ownable{
         warehouse["uniswapv2"] = new Uniswapv2Exchange();
     }
 
-    function setExchange(string _exchangename) public {
-        require(msg.sender == governance, "!governance");
+    function setExchange(string memory _exchangename) public {
         exchangeName = _exchangename;
     }
 
     function getMulitExpectedReturn(
-        IERC20[] fromToken,
-        IERC20[] destToken,
-        uint256[] amount
+        IERC20[] memory fromToken,
+        IERC20[] memory destToken,
+        uint256[] memory amount
     )
         public
         view
         returns(
-            uint256[] returnAmount
+            uint256[] memory returnAmount
         )
     {
         require(fromToken.length <=3 || destToken <= 3 || amount <=3, "!Invalid Parameter");
@@ -48,9 +47,9 @@ contract Controller is IERC20, Ownable{
 
 
     function muiltSwap(
-        IERC20[] fromToken,
-        IERC20[] destToken,
-        uint256[] amount
+        IERC20[] memory fromToken,
+        IERC20[] memory destToken,
+        uint256[] memory amount
     )
         public
         payable
