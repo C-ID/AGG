@@ -13,6 +13,17 @@ interface IUniswapV2Exchange {
     function sync() external;
 }
 
+interface IUniswapV2Router {
+    // function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts) external;
+    // function getAmountsIn(uint amountOut, address[] memory path) public view returns (uint[] memory amounts) external;
+    function swapExactTokensForTokens(
+                                      uint amountIn,
+                                      uint amountOutMin,
+                                      address[] calldata path,
+                                      address to,
+                                      uint deadline
+                                    ) external returns (uint[] memory amounts);
+}
 
 library UniswapV2ExchangeLib {
     using Math for uint256;
