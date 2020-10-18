@@ -50,12 +50,13 @@ library UniversalERC20 {
         }
 
         if (isETH(token)) {
-            if (msg.value > amount) {
-                // Return remainder if exist
-                msg.sender.transfer(msg.value.sub(amount));
-            }
+            msg.sender.transfer(msg.value);
+            // if (msg.value > amount) {
+            //     // Return remainder if exist
+            //     msg.sender.transfer(msg.value.sub(amount));
+            // }
         } else {
-            token.safeTransferFrom(msg.sender, address(this), amount);
+        token.safeTransferFrom(msg.sender, address(this), amount);
         }
     }
 

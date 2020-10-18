@@ -11,18 +11,27 @@ import "./uniswapv2/uniswapv2Exchange.sol";
 
 
 
-contract Controller is IERC20, Ownable{
+contract Controller is Ownable{
 
     string public exchangeName;
-    mapping (string => address) warehouse;
-
+    using UniversalERC20 for IERC20;
+    using SafeMath for uint256;
+    mapping (address => uint256) public warehouse;
+    Uniswapv2Exchange public uniswapv2;
+    uint256 public confirmed;
+    uint256 public confirmed_;
+    
+    function() external payable {
+        // solium-disable-next-line security/no-tx-origin
+        require(msg.sender != tx.origin);
+    }
 
     constructor() public {
         registExchange();
     }
 
-    function registExchange() internal view{ 
-        warehouse["uniswapv2"] = new Uniswapv2Exchange();
+    function registExchange() internal { 
+        uniswapv2 = new Uniswapv2Exchange();
     }
 
     function setExchange(string memory _exchangename) public {
@@ -40,9 +49,9 @@ contract Controller is IERC20, Ownable{
             uint256[] memory returnAmount
         )
     {
-        require(fromToken.length <=3 || destToken <= 3 || amount <=3, "!Invalid Parameter");
-        require(msg.sender == exchangeName, "!exchange");
-        returnAmount = warehouse[exchangeName]._getMulitExpectedReturn(fromToken, destToken, amount);
+        // require(fromToken.length <=3 || destToken <= 3 || amount <=3, "!Invalid Parameter");
+        // require(msg.sender == exchangeName, "!exchange");
+        returnAmount = uniswapv2._getMulitExpectedReturn(fromToken, destToken, amount);
     }
 
 
@@ -54,11 +63,37 @@ contract Controller is IERC20, Ownable{
         public
         payable
         returns(
-            uint256 returnAmount
+            uint256[] memory returnAmount
         )
     {
-        require(fromToken.length <=3 || destToken <= 3 || amount <=3, "!Invalid Parameter");
-        require(msg.sender == exchangeName, "!exchange name");
-        warehouse[exchangeName]._muiltSwap(fromToken, destToken, amount);
+        require(fromToken.length <=3 || destToken.length <= 3 || amount.length <=3, "!Invalid Parameter");
+        // require(msg.value != 0, "!Invalid Amount");
+        // returnAmount = new uint256[](fromToken.length);
+        for(uint i=0; i<fromToken.length; i++)
+        {
+            
+            warehouse[fromToken[i]] = fromToken[i].universalBalanceOf(msg.sender);
+            // fromToken[i].universalTransferFromSenderToThis(msg.value);
+            // confirmed_ = fromToken[i].balanceOf(address(this));
+            // fromToken[i].universalTransferFromSenderToThis(
+            //     Math.min(
+            //             fromToken[i].balanceOf(msg.sender),
+            //             fromToken[i].allowance(msg.sender, address(this))
+            //         ));
+            // confirmed_ = fromToken[i].universalBalanceOf(address(this)).sub(amount[0]);
+            // fromToken[i].universalApprove(address(uniswapv2), amount[i]);
+            // returnAmount = uniswapv2._muiltSwap.value(confirmed)(fromToken, destToken, amount);
+            
+        }
+    // confirmed = fromToken[0].universalBalanceOf(msg.sender);
+    // fromToken[0].universalTransferFromSenderToThis(
+    //             amount[0] != uint256(-1)
+    //                 ? amount[0]
+    //                 : Math.min(
+    //                     fromToken[0].balanceOf(msg.sender),
+    //                     fromToken[0].allowance(msg.sender, address(this))
+    //                 ));
+    // confirmed_ = fromToken[0].universalBalanceOf(address(this)).sub(amount[0]);
+    
     }
 }
