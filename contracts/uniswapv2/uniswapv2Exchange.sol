@@ -185,19 +185,11 @@ contract Uniswapv2Exchange is ExchangeBase{
         IERC20 fromToken,
         IERC20 destToken,
         uint256 amount
-<<<<<<< HEAD
     ) internal returns(uint256 returnAmount) {
         if (fromToken.isETH()) {
             weth.deposit.value(amount)();
         }
 
-=======
-    ) public payable returns(uint256 returnAmount) {
-        if (fromToken.isETH()) {
-            weth.deposit.value(amount)();
-        }
-  
->>>>>>> e3f60411dd39491b9343552d996090225dd15913
         IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
         IERC20 toTokenReal = destToken.isETH() ? weth : destToken;
         IUniswapV2Exchange exchange = uniswapV2.getPair(fromTokenReal, toTokenReal);

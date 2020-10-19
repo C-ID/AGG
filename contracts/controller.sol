@@ -7,7 +7,7 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contr
 import "../interfaces/uniswapv2/IUniswapV2Factory.sol";
 import "./UniversalERC20.sol";
 import "./DexExchangePlatform.sol";
-import "./uniswapv2/uniswapv2Exchange.sol";
+// import "./uniswapv2/uniswapv2Exchange.sol";
 
 
 
@@ -73,15 +73,25 @@ import "./uniswapv2/uniswapv2Exchange.sol";
 
 /// @notice AtomicSwapper implements the atomic swapping interface
 /// for token Swap in Dex Exchange platform...
-contract AtomicSwapper{
-
-    string public VISION; // Passed in as a constructor parameter.
+contract AtomicSwapper {
+    
+    string public VERSION; // Passed in as a constructor parameter.
     DexExchangePlatform public factory;
+    
     struct Swap{
+        uint256 value;
         uint256 openAmount;
-        address openTrader;
+        address payable openTrader;
         string exchangeName;
-        function() swapTrader;
+        IERC20 fromToken;
+        IERC20 toToken;
+        function(IERC20, IERC20, uint256) swapTrader;
+        function(IERC20, IERC20, uint256) visiTrader;
+    }
+    
+    struct tokenPair{
+        IERC20 fromToken;
+        IERC20 destToken;
     }
 
     enum States {
@@ -95,9 +105,11 @@ contract AtomicSwapper{
     mapping (bytes32 => Swap) private swaps;
     mapping (bytes32 => States) private swapStates;
     mapping (bytes32 => uint256) public redeemedTime;
+    mapping (string => function(IERC20, IERC20, uint256)) private traderFactory;
+    mapping (string => function(IERC20, IERC20, uint256)) private traderVisFactory;
 
     //Events
-    event LogOpen(bytes32 _swapID, address _withdrawTrader, bytes32 _secretLock);
+    event LogOpen(bytes32 _swapID, string exchangeName);
     event LogExpire(bytes32 _swapID);
     event LogClose(bytes32 _swapID, bytes32 _secretKey);
 
@@ -113,6 +125,12 @@ contract AtomicSwapper{
         require(swapStates[_swapID] == States.OPEN, "swap not open");
         _;
     }
+    
+    // modifier onlyExpirableSwaps(bytes32 _swapID) {
+    //     /* solium-disable-next-line security/no-block-members */
+    //     require(now >= swaps[_swapID].timelock, "swap not expirable");
+    //     _;
+    // }
 
     /// @notice Throws if the swap is not closed.
     modifier onlyClosedSwaps(bytes32 _swapID) {
@@ -121,17 +139,21 @@ contract AtomicSwapper{
     }
 
     /// @notice Throws if the secret key is not valid.
-    modifier onlyWithSecretKey(bytes32 _swapID, bytes32 _secretKey) {
-        require(swaps[_swapID].secretLock == sha256(abi.encodePacked(_secretKey)), "invalid secret");
-        _;
-    }
+    // modifier onlyWithSecretKey(bytes32 _swapID, bytes32 _secretKey) {
+    //     require(swaps[_swapID].secretLock == sha256(abi.encodePacked(_secretKey)), "invalid secret");
+    //     _;
+    // }
 
     constructor(
-        string _VERSION, 
+        string memory _VERSION,
         DexExchangePlatform _factory
-    )public {
+    ) public {
         VERSION = _VERSION;
         factory = _factory;
+    }
+    
+    function registExchange() internal pure {
+        
     }
 
     /// @notice Initiates the atomic swap.
@@ -142,39 +164,42 @@ contract AtomicSwapper{
     /// @param _timelock The unix timestamp when the swap expires.
     function initiate(
         bytes32 _swapID,
-        address _withdrawTrader,
-        bytes32 _secretLock,
-        uint256 _timelock
-    ) external onlyInvalidSwaps(_swapID) payable {
+        string memory traderName,
+        IERC20 _fromToken,
+        IERC20 _toToken,
+        uint256 amount
+    ) internal view onlyInvalidSwaps(_swapID) {
         // Store the details of the swap.
         Swap memory swap = Swap({
-            timelock: _timelock,
             value: msg.value,
-            ethTrader: msg.sender,
-            withdrawTrader: _withdrawTrader,
-            secretLock: _secretLock,
-            secretKey: 0x0
+            openTrader: msg.sender,
+            openAmount: amount,
+            exchangeName: traderName,
+            fromToken: _fromToken,
+            toToken: _toToken,
+            swapTrader: traderFactory[traderName],
+            visiTrader: traderVisFactory[traderName]
         });
         swaps[_swapID] = swap;
         swapStates[_swapID] = States.OPEN;
 
         // Logs open event
-        emit LogOpen(_swapID, _withdrawTrader, _secretLock);
+        emit LogOpen(_swapID, traderName);
     }
 
     /// @notice Redeems an atomic swap.
     ///
     /// @param _swapID The unique atomic swap id.
     /// @param _secretKey The secret of the atomic swap.
-    function redeem(bytes32 _swapID, bytes32 _secretKey) external onlyOpenSwaps(_swapID) onlyWithSecretKey(_swapID, _secretKey) {
+    function redeem(bytes32 _swapID, bytes32 _secretKey) external onlyOpenSwaps(_swapID) {
         // Close the swap.
-        swaps[_swapID].secretKey = _secretKey;
+
         swapStates[_swapID] = States.CLOSED;
         /* solium-disable-next-line security/no-block-members */
-        redeemedAt[_swapID] = now;
+        redeemedTime[_swapID] = now;
 
         // Transfer the ETH funds from this contract to the withdrawing trader.
-        swaps[_swapID].withdrawTrader.transfer(swaps[_swapID].value);
+        // swaps[_swapID].swapTrader(swaps[_swapID].value);
 
         // Logs close event
         emit LogClose(_swapID, _secretKey);
@@ -183,12 +208,12 @@ contract AtomicSwapper{
     /// @notice Refunds an atomic swap.
     ///
     /// @param _swapID The unique atomic swap id.
-    function refund(bytes32 _swapID) external onlyOpenSwaps(_swapID) onlyExpirableSwaps(_swapID) {
+    function refund(bytes32 _swapID) external onlyOpenSwaps(_swapID) {
         // Expire the swap.
         swapStates[_swapID] = States.EXPIRED;
 
         // Transfer the ETH value from this contract back to the ETH trader.
-        swaps[_swapID].ethTrader.transfer(swaps[_swapID].value);
+        swaps[_swapID].openTrader.transfer(swaps[_swapID].value);
 
         // Logs expire event
         emit LogExpire(_swapID);
@@ -197,31 +222,31 @@ contract AtomicSwapper{
     /// @notice Audits an atomic swap.
     ///
     /// @param _swapID The unique atomic swap id.
-    function audit(bytes32 _swapID) external view returns (uint256 timelock, uint256 value, address to, address from, bytes32 secretLock) {
+    function audit(bytes32 _swapID) external view returns (uint256 value, IERC20 from, IERC20 to, string memory name, address customer) {
         Swap memory swap = swaps[_swapID];
         return (
-            swap.timelock,
             swap.value,
-            swap.withdrawTrader,
-            swap.ethTrader,
-            swap.secretLock
+            swap.fromToken,
+            swap.toToken,
+            swap.exchangeName,
+            swap.openTrader
         );
     }
 
     /// @notice Audits the secret of an atomic swap.
     ///
     /// @param _swapID The unique atomic swap id.
-    function auditSecret(bytes32 _swapID) external view onlyClosedSwaps(_swapID) returns (bytes32 secretKey) {
-        return swaps[_swapID].secretKey;
-    }
+    // function auditSecret(bytes32 _swapID) external view onlyClosedSwaps(_swapID) returns (bytes32 secretKey) {
+    //     return swaps[_swapID].secretKey;
+    // }
 
     /// @notice Checks whether a swap is refundable or not.
     ///
     /// @param _swapID The unique atomic swap id.
-    function refundable(bytes32 _swapID) external view returns (bool) {
-        /* solium-disable-next-line security/no-block-members */
-        return (now >= swaps[_swapID].timelock && swapStates[_swapID] == States.OPEN);
-    }
+    // function refundable(bytes32 _swapID) external view returns (bool) {
+    //     /* solium-disable-next-line security/no-block-members */
+    //     return (now >= swaps[_swapID].timelock && swapStates[_swapID] == States.OPEN);
+    // }
 
     /// @notice Checks whether a swap is initiatable or not.
     ///
@@ -253,9 +278,17 @@ contract swapTradeControllor is Ownable{
     
     AtomicSwapper public swapper;
     address constant public ETHEREUM = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
+    
+    mapping(address => mapping(address => uint256)) public traderBalances;
+    mapping(address => mapping(address => uint256)) public traderWithdrawalSignals;
+    
+    // Events
+    event LogBalanceDecreased(address trader, IERC20 token, uint256 value);
+    event LogBalanceIncreased(address trader, IERC20 token, uint256 value);
+    event LogAtomicSwapperContractUpdated(address previousAtomicSwapperContract, address newAtomicSwapperContract);
+    
     constructor(
-        string _VERSION,
+        string memory _VERSION,
         AtomicSwapper _swapper
     ) public {
         VERSION = _VERSION;
@@ -279,17 +312,17 @@ contract swapTradeControllor is Ownable{
     /// since a trader has called `signalBackupWithdraw`.
     /// @dev If the trader is withdrawing after calling `signalBackupWithdraw`,
     /// this will reset the time to zero, writing to storage.
-    modifier withBrokerSignatureOrSignal(address _token, bytes _signature) {
+    modifier withBrokerSignatureOrSignal(address _token, bytes memory _signature) {
         address trader = msg.sender;
 
         // If a signature has been provided, verify it - otherwise, verify that
         // the user has signalled the withdraw
         if (_signature.length > 0) {
-            require (brokerVerifierContract.verifyWithdrawSignature(trader, _token, _signature), "invalid signature");
+            // require (brokerVerifierContract.verifyWithdrawSignature(trader, _token, _signature), "invalid signature");
         } else  {
             require(traderWithdrawalSignals[trader][_token] != 0, "not signalled");
             /* solium-disable-next-line security/no-block-members */
-            require((now - traderWithdrawalSignals[trader][_token]) > SIGNAL_DELAY, "signal time remaining");
+            // require((now - traderWithdrawalSignals[trader][_token]) > SIGNAL_DELAY, "signal time remaining");
             traderWithdrawalSignals[trader][_token] = 0;
         }
         _;
@@ -299,7 +332,7 @@ contract swapTradeControllor is Ownable{
     ///
     /// @param _token The token's address (must be a registered token).
     /// @param _value The amount to deposit in the token's smallest unit.
-    function deposit(ERC20 _token, uint256 _value) internal {
+    function deposit(IERC20 _token, uint256 _value) internal {
         address trader = msg.sender;
 
         uint256 receivedValue = _value;
@@ -307,7 +340,7 @@ contract swapTradeControllor is Ownable{
             require(msg.value == _value, "mismatched value parameter and tx value");
         } else {
             require(msg.value == 0, "unexpected ether transfer");
-            receivedValue = CompatibleERC20(_token).safeTransferFromWithFees(trader, this, _value);
+            receivedValue = _token.safeTransferFrom(trader, this, _value);
         }
         privateIncrementBalance(trader, _token, receivedValue);
     }
@@ -320,14 +353,14 @@ contract swapTradeControllor is Ownable{
     /// @param _token The token's address.
     /// @param _value The amount to withdraw in the token's smallest unit.
     /// @param _signature The broker signature
-    function withdraw(ERC20 _token, uint256 _value, bytes _signature) internal withBrokerSignatureOrSignal(_token, _signature) {
+    function withdraw(IERC20 _token, uint256 _value, bytes memory _signature) internal {
         address trader = msg.sender;
 
         privateDecrementBalance(trader, _token, _value);
         if (_token == ETHEREUM) {
             trader.transfer(_value);
         } else {
-            CompatibleERC20(_token).safeTransfer(trader, _value);
+            _token.safeTransfer(trader, _value);
         }
     }
 
@@ -336,15 +369,17 @@ contract swapTradeControllor is Ownable{
 
     }
 
-    function init() external view returns()
+    function setTokenPairs() external view{
+        
+    }
 
-    function privateIncrementBalance(address _trader, ERC20 _token, uint256 _value) private {
+    function privateIncrementBalance(address _trader, IERC20 _token, uint256 _value) private {
         traderBalances[_trader][_token] = traderBalances[_trader][_token].add(_value);
 
         emit LogBalanceIncreased(_trader, _token, _value);
     }
 
-    function privateDecrementBalance(address _trader, ERC20 _token, uint256 _value) private {
+    function privateDecrementBalance(address _trader, IERC20 _token, uint256 _value) private {
         require(traderBalances[_trader][_token] >= _value, "insufficient funds");
         traderBalances[_trader][_token] = traderBalances[_trader][_token].sub(_value);
 

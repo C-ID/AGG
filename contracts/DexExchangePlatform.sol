@@ -14,12 +14,12 @@ contract IWETH is IERC20 {
     function withdraw(uint256 amount) external;
 }
 
-contract
 
 contract DexExchangePlatform{
     
     using UniversalERC20 for IERC20;
     using SafeMath for uint256;
+    using UniswapV2ExchangeLib for IUniswapV2Exchange;
     // using UniversalERC20 for IWETH;
     
     //WETH address, mainnet and ropsten testnet address are bellow.
@@ -29,20 +29,18 @@ contract DexExchangePlatform{
     IUniswapV2Factory constant internal uniswapV2 = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
 
     //balancer exchange address
-    IBalancerRegistry constant internal balancerRegistry = IBalancerRegistry(0x65e67cbc342712DF67494ACEfc06fe951EE93982);
+    // IBalancerRegistry constant internal balancerRegistry = IBalancerRegistry(0x65e67cbc342712DF67494ACEfc06fe951EE93982);
     
     //uniswapv2 swap strategy are bellow
     function _calculateUniswapV2(
         IERC20 fromToken,
         IERC20 destToken,
         uint256 amounts
-    ) internal view returns(uint256 rets) {
+    ) external view returns(uint256 rets) {
         IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
         IERC20 destTokenReal = destToken.isETH() ? weth : destToken;
-        // uint len = uniswapV2.allPairsLength();
-        // uint first = 0;
-        // address pair = uniswapV2.allPairs(first);
-        IUniswapV2Exchange exchange = uniswapV2.getPair(fromToken, destToken);
+
+        IUniswapV2Exchange exchange = uniswapV2.getPair(fromTokenReal, destTokenReal);
 
         if (exchange != IUniswapV2Exchange(0)) {
             uint256 fromTokenBalance = fromToken.universalBalanceOf(address(exchange));
@@ -65,14 +63,10 @@ contract DexExchangePlatform{
         IERC20 fromToken,
         IERC20 destToken,
         uint256 amount
-    ) internal returns(uint256 returnAmount) {
-        if (fromToken.isETH()) {
-            weth.deposit.value(amount)();
-        }
-        // IUniswapV2Exchange exchange = IUniswapV2Exchange(0xa6f3ef841d371a82ca757FaD08efc0DeE2F1f5e2);
+    ) external returns(uint256 returnAmount) {
         IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
         IERC20 toTokenReal = destToken.isETH() ? weth : destToken;
-        IUniswapV2Exchange exchange = uniswapV2.getPair(fromToken, destToken);
+        IUniswapV2Exchange exchange = uniswapV2.getPair(fromTokenReal, toTokenReal);
         bool needSync;
         bool needSkim;
         (returnAmount, needSync, needSkim) = exchange.getReturn(fromToken, destToken, amount);
@@ -88,10 +82,6 @@ contract DexExchangePlatform{
             exchange.swap(0, returnAmount, address(this), "");
         } else {
             exchange.swap(returnAmount, 0, address(this), "");
-        }
-
-        if (destToken.isETH()) {
-            weth.withdraw(weth.balanceOf(address(this)));
         }
     }
 }
