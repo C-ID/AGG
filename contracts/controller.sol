@@ -274,6 +274,7 @@ contract AtomicSwapper {
 
 contract swapTradeControllor is Ownable{
     using SafeMath for uint256;
+    using UniversalERC20 for IERC20;
     string public VERSION; // Passed in as a constructor parameter.
     
     AtomicSwapper public swapper;
@@ -336,11 +337,11 @@ contract swapTradeControllor is Ownable{
         address trader = msg.sender;
 
         uint256 receivedValue = _value;
-        if (_token == ETHEREUM) {
+        if (_token.isETH()) {
             require(msg.value == _value, "mismatched value parameter and tx value");
         } else {
             require(msg.value == 0, "unexpected ether transfer");
-            receivedValue = _token.safeTransferFrom(trader, this, _value);
+            receivedValue = _token.universalTransferFromSenderToThis(trader, address(this), _value);
         }
         privateIncrementBalance(trader, _token, receivedValue);
     }
@@ -357,10 +358,10 @@ contract swapTradeControllor is Ownable{
         address trader = msg.sender;
 
         privateDecrementBalance(trader, _token, _value);
-        if (_token == ETHEREUM) {
+        if (_token.isETH()) {
             trader.transfer(_value);
         } else {
-            _token.safeTransfer(trader, _value);
+            _token.universalTransfer(trader, _value);
         }
     }
 
