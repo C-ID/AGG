@@ -14,11 +14,13 @@ contract IWETH is IERC20 {
     function withdraw(uint256 amount) external;
 }
 
+contract
+
 contract DexExchangePlatform{
     
     using UniversalERC20 for IERC20;
     using SafeMath for uint256;
-    using UniversalERC20 for IWETH;
+    // using UniversalERC20 for IWETH;
     
     //WETH address, mainnet and ropsten testnet address are bellow.
     // IWETH constant internal weth = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);

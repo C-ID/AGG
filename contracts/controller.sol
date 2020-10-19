@@ -80,8 +80,8 @@ contract AtomicSwapper{
     struct Swap{
         uint256 openAmount;
         address openTrader;
-        string exchangeAddress;
-        address swapTrader;
+        string exchangeName;
+        function() swapTrader;
     }
 
     enum States {
@@ -299,7 +299,7 @@ contract swapTradeControllor is Ownable{
     ///
     /// @param _token The token's address (must be a registered token).
     /// @param _value The amount to deposit in the token's smallest unit.
-    function deposit(ERC20 _token, uint256 _value) external payable {
+    function deposit(ERC20 _token, uint256 _value) internal {
         address trader = msg.sender;
 
         uint256 receivedValue = _value;
@@ -312,7 +312,7 @@ contract swapTradeControllor is Ownable{
         privateIncrementBalance(trader, _token, receivedValue);
     }
 
-     /// @notice Withdraws ETH or an ERC20 token from the contract. A broker
+    /// @notice Withdraws ETH or an ERC20 token from the contract. A broker
     /// signature is required to guarantee that the trader has a sufficient
     /// balance after accounting for open orders. As a trustless backup,
     /// traders can withdraw 48 hours after calling `signalBackupWithdraw`.
@@ -320,7 +320,7 @@ contract swapTradeControllor is Ownable{
     /// @param _token The token's address.
     /// @param _value The amount to withdraw in the token's smallest unit.
     /// @param _signature The broker signature
-    function withdraw(ERC20 _token, uint256 _value, bytes _signature) external withBrokerSignatureOrSignal(_token, _signature) {
+    function withdraw(ERC20 _token, uint256 _value, bytes _signature) internal withBrokerSignatureOrSignal(_token, _signature) {
         address trader = msg.sender;
 
         privateDecrementBalance(trader, _token, _value);
@@ -330,6 +330,13 @@ contract swapTradeControllor is Ownable{
             CompatibleERC20(_token).safeTransfer(trader, _value);
         }
     }
+
+    /// @notice swap trade confirm action. with no parameters owing to initiate func.
+    function swapConfirmation() external payable {
+
+    }
+
+    function init() external view returns()
 
     function privateIncrementBalance(address _trader, ERC20 _token, uint256 _value) private {
         traderBalances[_trader][_token] = traderBalances[_trader][_token].add(_value);
