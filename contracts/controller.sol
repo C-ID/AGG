@@ -11,12 +11,20 @@ import "./uniswapv2/uniswapv2Exchange.sol";
 
 
 
-// contract Controller is IERC20, Ownable{
+// contract Controller is Ownable{
 
 //     string public exchangeName;
-//     mapping (string => address) warehouse;
-
-
+//     using UniversalERC20 for IERC20;
+//     using SafeMath for uint256;
+//     mapping (address => uint256) public warehouse;
+//     Uniswapv2Exchange public uniswapv2;
+//     uint256 public confirmed;
+//     uint256 public confirmed_;
+    
+//     function() external payable {
+//         // solium-disable-next-line security/no-tx-origin
+//         require(msg.sender != tx.origin);
+//     }
 //     constructor() public {
 //         registExchange();
 //     }
@@ -241,7 +249,7 @@ contract swapTradeControllor is Ownable{
     
     AtomicSwapper public swapper;
     address constant public ETHEREUM = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    
+
     constructor(
         string _VERSION,
         AtomicSwapper _swapper

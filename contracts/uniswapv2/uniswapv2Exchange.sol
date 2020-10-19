@@ -94,9 +94,10 @@ contract Uniswapv2Exchange is ExchangeBase{
         //     return rets;
         // }
         
-        // ["0xc778417E063141139Fce010982780140Aa0cD5Ab","0xaD6D458402F60fD3Bd25163575031ACDce07538D"]
+        // ["0xc778417E063141139Fce010982780140Aa0cD5Ab",["0xaD6D458402F60fD3Bd25163575031ACDce07538D"]
         // ["0x20fE562d797A42Dcb3399062AE9546cd06f63280"]
         // [1,2]
+        //  ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"]
         
         if(fromToken.length > 1 && destToken.length==1)
         {
@@ -184,14 +185,22 @@ contract Uniswapv2Exchange is ExchangeBase{
         IERC20 fromToken,
         IERC20 destToken,
         uint256 amount
+<<<<<<< HEAD
     ) internal returns(uint256 returnAmount) {
         if (fromToken.isETH()) {
             weth.deposit.value(amount)();
         }
 
+=======
+    ) public payable returns(uint256 returnAmount) {
+        if (fromToken.isETH()) {
+            weth.deposit.value(amount)();
+        }
+  
+>>>>>>> e3f60411dd39491b9343552d996090225dd15913
         IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
         IERC20 toTokenReal = destToken.isETH() ? weth : destToken;
-        IUniswapV2Exchange exchange = uniswapV2.getPair(fromToken, destToken);
+        IUniswapV2Exchange exchange = uniswapV2.getPair(fromTokenReal, toTokenReal);
         bool needSync;
         bool needSkim;
         (returnAmount, needSync, needSkim) = exchange.getReturn(fromTokenReal, toTokenReal, amount);
