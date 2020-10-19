@@ -6,7 +6,7 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contr
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/ownership/Ownable.sol";
 import "../interfaces/uniswapv2/IUniswapV2Factory.sol";
 import "./UniversalERC20.sol";
-// import "./ExchangeBase.sol";
+import "./DexExchangePlatform.sol";
 import "./uniswapv2/uniswapv2Exchange.sol";
 
 
@@ -76,7 +76,7 @@ import "./uniswapv2/uniswapv2Exchange.sol";
 contract AtomicSwapper{
 
     string public VISION; // Passed in as a constructor parameter.
-
+    DexExchangePlatform public factory;
     struct Swap{
         uint256 openAmount;
         address openTrader;
@@ -126,8 +126,12 @@ contract AtomicSwapper{
         _;
     }
 
-    constructor(string _VERSION) public {
+    constructor(
+        string _VERSION, 
+        DexExchangePlatform _factory
+    )public {
         VERSION = _VERSION;
+        factory = _factory;
     }
 
     /// @notice Initiates the atomic swap.
