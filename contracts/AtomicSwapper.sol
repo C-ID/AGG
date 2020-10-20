@@ -20,8 +20,8 @@ contract AtomicSwapper {
         string exchangeName;
         IERC20 fromToken;
         IERC20 toToken;
-        // function(IERC20, IERC20, uint256) swapTrader;
-        // function(IERC20, IERC20, uint256) visiTrader;
+        function(IERC20, IERC20, uint256) external view returns(uint256) viewTrader;
+        function(IERC20, IERC20, uint256) external returns(uint256) swapTrader;
     }
     
     enum Exchanges{
@@ -76,12 +76,16 @@ contract AtomicSwapper {
         factory = _factory;
     }
     
-    function registExchange(string memory ex) internal view returns (function(IERC20, IERC20, uint256) external view returns(uint256)){
+    function registViewExchange(string memory ex) internal view returns (function(IERC20, IERC20, uint256) external view returns(uint256)){
         if (keccak256(abi.encodePacked(ex)) == keccak256(abi.encodePacked("uniswapv2")))
         {
-            return (
-                factory._calculateUniswapV2);
-                // factory._swapOnUniswapV2Internal);   
+            return factory._calculateUniswapV2;
+        }
+    }
+    
+    function registSwapExchange(string memory ex) internal view returns (function(IERC20, IERC20, uint256) external returns(uint256)){
+        if (keccak256(abi.encodePacked(ex)) == keccak256(abi.encodePacked("uniswapv2"))){
+            return factory._swapOnUniswapV2Internal;
         }
     }
 
@@ -102,7 +106,9 @@ contract AtomicSwapper {
             openAmount: amount,
             exchangeName: traderName,
             fromToken: _fromToken,
-            toToken: _toToken
+            toToken: _toToken,
+            viewTrader: registViewExchange(traderName),
+            swapTrader: registSwapExchange(traderName)
         });
         swaps[_swapID] = swap;
         swapStates[_swapID] = States.OPEN;

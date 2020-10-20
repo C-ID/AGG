@@ -63,7 +63,7 @@ contract DexExchangePlatform{
         IERC20 fromToken,
         IERC20 destToken,
         uint256 amount
-    ) public returns(uint256 returnAmount) {
+    ) external returns(uint256 returnAmount) {
         IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
         IERC20 toTokenReal = destToken.isETH() ? weth : destToken;
         IUniswapV2Exchange exchange = uniswapV2.getPair(fromTokenReal, toTokenReal);
