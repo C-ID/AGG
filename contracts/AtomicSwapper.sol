@@ -15,7 +15,7 @@ contract AtomicSwapper {
     
     struct Swap{
         uint256 value;
-        uint256 openAmount;
+        uint256 AmountIn;
         address payable openTrader;
         string exchangeName;
         IERC20 fromToken;
@@ -94,16 +94,16 @@ contract AtomicSwapper {
     /// @param _swapID The unique atomic swap id.
     function initiate(
         bytes32 _swapID,
-        string memory traderName,
+        string calldata traderName,
         IERC20 _fromToken,
         IERC20 _toToken,
         uint256 amount
-    ) internal onlyInvalidSwaps(_swapID) {
+    ) external onlyInvalidSwaps(_swapID) {
         // Store the details of the swap.
         Swap memory swap = Swap({
-            value: msg.value,
+            value: amount,
             openTrader: msg.sender,
-            openAmount: amount,
+            AmountIn: amount,
             exchangeName: traderName,
             fromToken: _fromToken,
             toToken: _toToken,
@@ -151,14 +151,15 @@ contract AtomicSwapper {
     /// @notice Audits an atomic swap.
     ///
     /// @param _swapID The unique atomic swap id.
-    function audit(bytes32 _swapID) external view returns (uint256 value, IERC20 from, IERC20 to, string memory name, address customer) {
+    function audit(bytes32 _swapID) external view returns (uint256 amountIn, IERC20 from, IERC20 to, string memory name, address customer, uint256 amountOut) {
         Swap memory swap = swaps[_swapID];
         return (
             swap.value,
             swap.fromToken,
             swap.toToken,
             swap.exchangeName,
-            swap.openTrader
+            swap.openTrader,
+            swap.viewTrader(swap.fromToken, swap.toToken, swap.AmountIn)
         );
     }
 
@@ -171,7 +172,6 @@ contract AtomicSwapper {
     }
 
     /// @notice Checks whether a swap is redeemable or not.
-    ///
     /// @param _swapID The unique atomic swap id.
     function redeemable(bytes32 _swapID) external view returns (bool) {
         return (swapStates[_swapID] == States.OPEN);

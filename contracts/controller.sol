@@ -164,12 +164,18 @@ contract swapTradeControllor is Ownable{
     }
 
     /// @notice swap trade confirm action. with no parameters owing to initiate func.
-    function swapConfirmation() external payable {
-
+    function swapConfirmation(bytes32[] calldata swapIds) external payable {
+        
     }
 
-    function setTokenPairs() external view{
-        
+    function setTokenPairs( 
+        bytes32 _swapID,
+        string calldata traderName,
+        IERC20 _fromToken,
+        IERC20 _toToken,
+        uint256 amount
+    ) external {
+        swapper.initiate(_swapID, traderName, _fromToken, _toToken, amount);
     }
 
     function privateIncrementBalance(address _trader, address _token, uint256 _value) private {
