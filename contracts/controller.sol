@@ -4,8 +4,13 @@ pragma solidity ^0.5.0;
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/math/SafeMath.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/token/ERC20/IERC20.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/ownership/Ownable.sol";
+import "../interfaces/uniswapv2/IUniswapV2Factory.sol";
 import "./UniversalERC20.sol";
 import "./AtomicSwapper.sol";
+// import "./uniswapv2/uniswapv2Exchange.sol";
+
+
+
 // contract Controller is Ownable{
 
 //     string public exchangeName;
@@ -66,21 +71,21 @@ import "./AtomicSwapper.sol";
 //     }
 // }
 
-contract swapTradeControllor is IERC20, Ownable{
+contract swapTradeControllor is Ownable{
     using SafeMath for uint256;
     using UniversalERC20 for IERC20;
     string public VERSION; // Passed in as a constructor parameter.
     
     AtomicSwapper public swapper;
-    // address constant public ETHEREUM = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address constant public ETHEREUM = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     
     mapping(address => mapping(address => uint256)) public traderBalances;
     mapping(address => mapping(address => uint256)) public traderWithdrawalSignals;
     
     // Events
-    event LogBalanceDecreased(address trader, IERC20 token, uint256 value);
-    event LogBalanceIncreased(address trader, IERC20 token, uint256 value);
-    event LogAtomicSwapperContractUpdated(address previousAtomicSwapperContract, address newAtomicSwapperContract);
+    event LogBalanceDecreased(address trader, address token, uint256 value);
+    event LogBalanceIncreased(address trader, address token, uint256 value);
+    event LogAtomicSwapperContractUpdated(AtomicSwapper previousAtomicSwapperContract, AtomicSwapper newAtomicSwapperContract);
     
     constructor(
         string memory _VERSION,
@@ -127,15 +132,15 @@ contract swapTradeControllor is IERC20, Ownable{
     ///
     /// @param _token The token's address (must be a registered token).
     /// @param _value The amount to deposit in the token's smallest unit.
-    function deposit(IERC20 _token, uint256 _value) internal {
+    function deposit(address _token, uint256 _value) internal {
         address trader = msg.sender;
 
         uint256 receivedValue = _value;
-        if (_token.isETH()) {
+        if (IERC20(_token).isETH()) {
             require(msg.value == _value, "mismatched value parameter and tx value");
         } else {
             require(msg.value == 0, "unexpected ether transfer");
-            receivedValue = _token.universalTransferFromSenderToThis(trader, address(this), _value);
+            IERC20(_token).universalTransferFromSenderToThis(_value);
         }
         privateIncrementBalance(trader, _token, receivedValue);
     }
@@ -147,15 +152,14 @@ contract swapTradeControllor is IERC20, Ownable{
     ///
     /// @param _token The token's address.
     /// @param _value The amount to withdraw in the token's smallest unit.
-    /// @param _signature The broker signature
-    function withdraw(IERC20 _token, uint256 _value, bytes memory _signature) internal {
+    function withdraw(address _token, uint256 _value) internal {
         address payable trader = msg.sender;
 
         privateDecrementBalance(trader, _token, _value);
-        if (_token.isETH()) {
-            msg.sender.transfer(_value);
+        if (IERC20(_token).isETH()) {
+            trader.transfer(_value);
         } else {
-            _token.universalTransfer(trader, _value);
+            IERC20(_token).universalTransfer(trader, _value);
         }
     }
 
@@ -168,13 +172,13 @@ contract swapTradeControllor is IERC20, Ownable{
         
     }
 
-    function privateIncrementBalance(address _trader, IERC20 _token, uint256 _value) private {
+    function privateIncrementBalance(address _trader, address _token, uint256 _value) private {
         traderBalances[_trader][_token] = traderBalances[_trader][_token].add(_value);
 
         emit LogBalanceIncreased(_trader, _token, _value);
     }
 
-    function privateDecrementBalance(address _trader, IERC20 _token, uint256 _value) private {
+    function privateDecrementBalance(address _trader, address _token, uint256 _value) private {
         require(traderBalances[_trader][_token] >= _value, "insufficient funds");
         traderBalances[_trader][_token] = traderBalances[_trader][_token].sub(_value);
 
