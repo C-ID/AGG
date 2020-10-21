@@ -16,7 +16,7 @@ contract AtomicSwapper {
     struct Swap{
         uint256 value;
         uint256 AmountIn;
-        address payable openTrader;
+        // address payable openTrader;
         string exchangeName;
         IERC20 fromToken;
         IERC20 toToken;
@@ -94,15 +94,15 @@ contract AtomicSwapper {
     /// @param _swapID The unique atomic swap id.
     function initiate(
         bytes32 _swapID,
-        string calldata traderName,
+        string memory traderName,
         IERC20 _fromToken,
         IERC20 _toToken,
         uint256 amount
-    ) external onlyInvalidSwaps(_swapID) {
+    ) public onlyInvalidSwaps(_swapID) {
         // Store the details of the swap.
         Swap memory swap = Swap({
             value: amount,
-            openTrader: msg.sender,
+            // openTrader: msg.sender,
             AmountIn: amount,
             exchangeName: traderName,
             fromToken: _fromToken,
@@ -137,29 +137,32 @@ contract AtomicSwapper {
     /// @notice Refunds an atomic swap.
     ///
     /// @param _swapID The unique atomic swap id.
-    function refund(bytes32 _swapID) external onlyOpenSwaps(_swapID) {
-        // Expire the swap.
-        swapStates[_swapID] = States.EXPIRED;
+    // function refund(bytes32 _swapID) external onlyOpenSwaps(_swapID) {
+    //     // Expire the swap.
+    //     swapStates[_swapID] = States.EXPIRED;
 
-        // Transfer the ETH value from this contract back to the ETH trader.
-        swaps[_swapID].openTrader.transfer(swaps[_swapID].value);
+    //     // Transfer the ETH value from this contract back to the ETH trader.
+    //     swaps[_swapID].openTrader.transfer(swaps[_swapID].value);
 
-        // Logs expire event
-        emit LogExpire(_swapID);
-    }
+    //     // Logs expire event
+    //     emit LogExpire(_swapID);
+    // }
 
     /// @notice Audits an atomic swap.
     ///
     /// @param _swapID The unique atomic swap id.
-    function audit(bytes32 _swapID) external view returns (uint256 amountIn, IERC20 from, IERC20 to, string memory name, address customer, uint256 amountOut) {
+    function audit(bytes32 _swapID) external view returns (uint256 amountIn, IERC20 from, IERC20 to, string memory name, uint256 amountOut) {
         Swap memory swap = swaps[_swapID];
+        function(IERC20, IERC20, uint256) external view returns(uint256) viewer = swap.viewTrader;
+        amountOut = viewer(swap.fromToken, swap.toToken, swap.AmountIn);
         return (
-            swap.value,
+            swap.AmountIn,
             swap.fromToken,
             swap.toToken,
             swap.exchangeName,
-            swap.openTrader,
-            swap.viewTrader(swap.fromToken, swap.toToken, swap.AmountIn)
+            // swap.openTrader,
+            // swap.viewTrader(swap.fromToken, swap.toToken, swap.AmountIn)
+            amountOut
         );
     }
 
