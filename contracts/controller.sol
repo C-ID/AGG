@@ -171,24 +171,32 @@ contract swapTradeControllor is Ownable{
     function setTokenPairs( 
         bytes32[] calldata _swapIDs,
         string calldata traderName,
-        IERC20[] calldata _fromTokens,
-        IERC20[] calldata _toTokens,
+        address[] calldata _fromTokens,
+        address[] calldata _toTokens,
         uint256[] calldata amounts
-    ) external {
+    ) external payable {
         require(_swapIDs.length == _fromTokens.length && _fromTokens.length == _toTokens.length && _toTokens.length == amounts.length && _swapIDs.length<=3, "!Invalid Parameters");
         
-        // for(uint i = 0; i<_swapIDs.length; i++){
-        //     swapper.initiate(_swapIDs[i], traderName, _fromTokens[i], _toTokens[i], amounts[i]);
+        for(uint i = 0; i<_swapIDs.length; i++){
+            IERC20(_fromTokens[i]).universalApprove(address(this), amounts[i]);
+            deposit(_fromTokens[i], amounts[i]);
+            swapper.initiate(_swapIDs[i], traderName, IERC20(_fromTokens[i]), IERC20(_toTokens[i]), amounts[i]);
+        }
+        // if (_swapIDs.length==1)
+        // {
+        //     swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
         // }
-        if (_swapIDs.length==1)
-        {
-            swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
-        }
-        else if(_swapIDs.length==2)
-        {
-            swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
-            swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
-        }
+        // else if(_swapIDs.length==2)
+        // {
+        //     swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
+        //     swapper.initiate(_swapIDs[1], traderName, _fromTokens[1], _toTokens[1], amounts[1]);
+        // }
+        // else if(_swapIDs.length==3)
+        // {
+        //     swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
+        //     swapper.initiate(_swapIDs[1], traderName, _fromTokens[1], _toTokens[1], amounts[1]);
+        //     swapper.initiate(_swapIDs[2], traderName, _fromTokens[2], _toTokens[2], amounts[2]);
+        // }
     }
 
     function privateIncrementBalance(address _trader, address _token, uint256 _value) private {

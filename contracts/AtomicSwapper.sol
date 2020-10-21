@@ -16,7 +16,7 @@ contract AtomicSwapper {
     struct Swap{
         uint256 value;
         uint256 AmountIn;
-        // address payable openTrader;
+        address payable openTrader;
         string exchangeName;
         IERC20 fromToken;
         IERC20 toToken;
@@ -66,6 +66,8 @@ contract AtomicSwapper {
     modifier onlyClosedSwaps(bytes32 _swapID) {
         require(swapStates[_swapID] == States.CLOSED, "swap not redeemed");
         _;
+        delete swapStates[_swapID];
+        delete swaps[_swapID];
     }
 
     constructor(
@@ -102,7 +104,7 @@ contract AtomicSwapper {
         // Store the details of the swap.
         Swap memory swap = Swap({
             value: amount,
-            // openTrader: msg.sender,
+            openTrader: msg.sender,
             AmountIn: amount,
             exchangeName: traderName,
             fromToken: _fromToken,
@@ -118,50 +120,32 @@ contract AtomicSwapper {
     }
 
     /// @notice Redeems an atomic swap.
-    ///
     /// @param _swapID The unique atomic swap id.
     function redeem(bytes32 _swapID) external onlyOpenSwaps(_swapID) {
-        // Close the swap.
-
-        swapStates[_swapID] = States.CLOSED;
+        
         /* solium-disable-next-line security/no-block-members */
         redeemedTime[_swapID] = now;
 
         // Transfer the ETH funds from this contract to the withdrawing trader.
         // swaps[_swapID].swapTrader(swaps[_swapID].value);
-
-        // Logs close event
-        // emit LogClose(_swapID, _secretKey);
+        
+        // Close the swap.
+        swapStates[_swapID] = States.CLOSED;
     }
-
-    /// @notice Refunds an atomic swap.
-    ///
-    /// @param _swapID The unique atomic swap id.
-    // function refund(bytes32 _swapID) external onlyOpenSwaps(_swapID) {
-    //     // Expire the swap.
-    //     swapStates[_swapID] = States.EXPIRED;
-
-    //     // Transfer the ETH value from this contract back to the ETH trader.
-    //     swaps[_swapID].openTrader.transfer(swaps[_swapID].value);
-
-    //     // Logs expire event
-    //     emit LogExpire(_swapID);
-    // }
-
+    
     /// @notice Audits an atomic swap.
-    ///
     /// @param _swapID The unique atomic swap id.
-    function audit(bytes32 _swapID) external view returns (uint256 amountIn, IERC20 from, IERC20 to, string memory name, uint256 amountOut) {
+    function audit(bytes32 _swapID) external returns (uint256 amountIn, IERC20 from, IERC20 to, string memory name, address sender, uint256 amountOut) {
         Swap memory swap = swaps[_swapID];
-        function(IERC20, IERC20, uint256) external view returns(uint256) viewer = swap.viewTrader;
-        amountOut = viewer(swap.fromToken, swap.toToken, swap.AmountIn);
+        function(IERC20, IERC20, uint256) external returns(uint256) swap_ = swap.swapTrader;
+        amountOut = swap_(swap.fromToken, swap.toToken, swap.AmountIn);
+        closeSwap(_swapID);
         return (
             swap.AmountIn,
             swap.fromToken,
             swap.toToken,
             swap.exchangeName,
-            // swap.openTrader,
-            // swap.viewTrader(swap.fromToken, swap.toToken, swap.AmountIn)
+            swap.openTrader,
             amountOut
         );
     }
@@ -176,7 +160,7 @@ contract AtomicSwapper {
 
     /// @notice Checks whether a swap is redeemable or not.
     /// @param _swapID The unique atomic swap id.
-    function redeemable(bytes32 _swapID) external view returns (bool) {
-        return (swapStates[_swapID] == States.OPEN);
+    function closeSwap(bytes32 _swapID) internal onlyClosedSwaps(_swapID) returns (bool) {
+        return true;
     }
 }
