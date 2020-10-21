@@ -94,11 +94,11 @@ contract AtomicSwapper {
     /// @param _swapID The unique atomic swap id.
     function initiate(
         bytes32 _swapID,
-        string memory traderName,
+        string calldata traderName,
         IERC20 _fromToken,
         IERC20 _toToken,
         uint256 amount
-    ) public onlyInvalidSwaps(_swapID) {
+    ) external onlyInvalidSwaps(_swapID) {
         // Store the details of the swap.
         Swap memory swap = Swap({
             value: amount,

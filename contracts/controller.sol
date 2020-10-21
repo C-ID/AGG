@@ -169,13 +169,26 @@ contract swapTradeControllor is Ownable{
     }
 
     function setTokenPairs( 
-        bytes32 _swapID,
+        bytes32[] calldata _swapIDs,
         string calldata traderName,
-        IERC20 _fromToken,
-        IERC20 _toToken,
-        uint256 amount
+        IERC20[] calldata _fromTokens,
+        IERC20[] calldata _toTokens,
+        uint256[] calldata amounts
     ) external {
-        swapper.initiate(_swapID, traderName, _fromToken, _toToken, amount);
+        require(_swapIDs.length == _fromTokens.length && _fromTokens.length == _toTokens.length && _toTokens.length == amounts.length && _swapIDs.length<=3, "!Invalid Parameters");
+        
+        // for(uint i = 0; i<_swapIDs.length; i++){
+        //     swapper.initiate(_swapIDs[i], traderName, _fromTokens[i], _toTokens[i], amounts[i]);
+        // }
+        if (_swapIDs.length==1)
+        {
+            swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
+        }
+        else if(_swapIDs.length==2)
+        {
+            swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
+            swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
+        }
     }
 
     function privateIncrementBalance(address _trader, address _token, uint256 _value) private {
