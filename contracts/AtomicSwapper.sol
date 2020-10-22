@@ -5,6 +5,7 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contr
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contracts/token/ERC20/IERC20.sol";
 import "./DexExchangePlatform.sol";
 import "../interfaces/uniswapv2/IUniswapV2Factory.sol";
+import "./UniversalERC20.sol";
 
 /// @notice AtomicSwapper implements the atomic swapping interface
 /// for token Swap in Dex Exchange platform...
@@ -12,6 +13,8 @@ contract AtomicSwapper {
     
     string public VERSION; // Passed in as a constructor parameter.
     DexExchangePlatform public factory;
+    
+    using UniversalERC20 for IERC20;
     
     struct Swap{
         uint256 value;
@@ -96,11 +99,11 @@ contract AtomicSwapper {
     /// @param _swapID The unique atomic swap id.
     function initiate(
         bytes32 _swapID,
-        string calldata traderName,
+        string memory traderName,
         IERC20 _fromToken,
         IERC20 _toToken,
         uint256 amount
-    ) external onlyInvalidSwaps(_swapID) {
+    ) internal onlyInvalidSwaps(_swapID) {
         // Store the details of the swap.
         Swap memory swap = Swap({
             value: amount,
@@ -114,40 +117,46 @@ contract AtomicSwapper {
         });
         swaps[_swapID] = swap;
         swapStates[_swapID] = States.OPEN;
-
+        
         // Logs open event
         emit LogOpen(_swapID, traderName);
     }
 
     /// @notice Redeems an atomic swap.
-    /// @param _swapID The unique atomic swap id.
-    function redeem(bytes32 _swapID) external onlyOpenSwaps(_swapID) {
+    /// @param swapID The unique atomic swap id.
+    function redeem(
+        bytes32 swapID,
+        string calldata traderName,
+        IERC20 _fromToken,
+        IERC20 _toToken,
+        uint256 amount
+        ) external returns(uint256 amountOut) {
         
         /* solium-disable-next-line security/no-block-members */
-        redeemedTime[_swapID] = now;
-
-        // Transfer the ETH funds from this contract to the withdrawing trader.
-        // swaps[_swapID].swapTrader(swaps[_swapID].value);
+        redeemedTime[swapID] = now;
+        _fromToken.universalApprove(address(this), amount);
+        _fromToken.universalTransferFrom(msg.sender, address(this), amount);
+        uint256 remainingAmount = _fromToken.universalBalanceOf(address(this));
+        require(remainingAmount == amount, "!Invalid Transfer");
+        
+        initiate(swapID, traderName, _fromToken, _toToken, amount);
+        
+        // Transfer the IERC20 Token from this contract to the swap trader.
+        amountOut = audit(swapID);
         
         // Close the swap.
-        swapStates[_swapID] = States.CLOSED;
+        swapStates[swapID] = States.CLOSED;
+        
     }
     
     /// @notice Audits an atomic swap.
     /// @param _swapID The unique atomic swap id.
-    function audit(bytes32 _swapID) external returns (uint256 amountIn, IERC20 from, IERC20 to, string memory name, address sender, uint256 amountOut) {
+    function audit(bytes32 _swapID) internal returns(uint256 amountOut) {
         Swap memory swap = swaps[_swapID];
         function(IERC20, IERC20, uint256) external returns(uint256) swap_ = swap.swapTrader;
         amountOut = swap_(swap.fromToken, swap.toToken, swap.AmountIn);
-        closeSwap(_swapID);
-        return (
-            swap.AmountIn,
-            swap.fromToken,
-            swap.toToken,
-            swap.exchangeName,
-            swap.openTrader,
-            amountOut
-        );
+        swap.toToken.universalTransfer(msg.sender, amountOut);
+        // closeSwap(_swapID);
     }
 
 

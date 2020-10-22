@@ -164,8 +164,14 @@ contract swapTradeControllor is Ownable{
     }
 
     /// @notice swap trade confirm action. with no parameters owing to initiate func.
-    function swapConfirmation(bytes32[] calldata swapIds) external payable {
-        
+    function swapConfirmation(
+        bytes32 _swapIDs,
+        string memory traderName,
+        address _fromTokens,
+        address _toTokens,
+        uint256 amounts
+        ) internal returns(uint256 amountOut){
+        amountOut = swapper.redeem(_swapIDs, traderName, IERC20(_fromTokens), IERC20(_toTokens), amounts);
     }
 
     function setTokenPairs( 
@@ -175,16 +181,22 @@ contract swapTradeControllor is Ownable{
         address[] calldata _toTokens,
         uint256[] calldata amounts
     ) external payable {
-        require(_swapIDs.length == _fromTokens.length && _fromTokens.length == _toTokens.length && _toTokens.length == amounts.length && _swapIDs.length<=3, "!Invalid Parameters");
-        
+        require(_swapIDs.length<=3, "!Invalid Parameters");
+        require(_swapIDs.length == _fromTokens.length, "!Invalid Parameters");
+        require(_fromTokens.length == _toTokens.length, "!Invalid Parameters");
+        require(_toTokens.length == amounts.length, "!Invalid Parameters");
         for(uint i = 0; i<_swapIDs.length; i++){
             IERC20(_fromTokens[i]).universalApprove(address(this), amounts[i]);
             deposit(_fromTokens[i], amounts[i]);
-            swapper.initiate(_swapIDs[i], traderName, IERC20(_fromTokens[i]), IERC20(_toTokens[i]), amounts[i]);
+            uint256 amountOut = swapConfirmation(_swapIDs[i], traderName, _fromTokens[i], _toTokens[i], amounts[i]);
+            IERC20(_toTokens[i]).universalTransfer(msg.sender, amountOut);
         }
         // if (_swapIDs.length==1)
         // {
-        //     swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
+        //     // IERC20(_fromTokens[0]).universalApprove(address(this), amounts[0]);
+        //     // deposit(_fromTokens[0], amounts[0]);
+        //     // (amountIn, from_, to_, name, sender, amountOut) = swapConfirmation(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
+        //     // IERC20(_toTokens[0]).universalTransfer(msg.sender, amountOut);
         // }
         // else if(_swapIDs.length==2)
         // {

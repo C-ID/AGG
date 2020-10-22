@@ -64,9 +64,15 @@ contract DexExchangePlatform{
         IERC20 destToken,
         uint256 amount
     ) external returns(uint256 returnAmount) {
+        
         IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
         IERC20 toTokenReal = destToken.isETH() ? weth : destToken;
+        
+        fromTokenReal.universalTransferFrom(msg.sender, address(this), amount);
+        uint256 remainingAmount = fromTokenReal.universalBalanceOf(address(this));
+        require(remainingAmount == amount, "!Invalid Transfer");
         IUniswapV2Exchange exchange = uniswapV2.getPair(fromTokenReal, toTokenReal);
+        fromTokenReal.universalApprove(address(exchange), remainingAmount);
         bool needSync;
         bool needSkim;
         (returnAmount, needSync, needSkim) = exchange.getReturn(fromToken, destToken, amount);
@@ -83,6 +89,9 @@ contract DexExchangePlatform{
         } else {
             exchange.swap(returnAmount, 0, address(this), "");
         }
+        
+        destToken.universalTransfer(msg.sender, returnAmount);
+        // fromToken.universalTransfer(msg.sender, fromToken.universalBalanceOf(address(this)));
     }
 }
 
