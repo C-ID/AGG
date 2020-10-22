@@ -98,7 +98,7 @@ contract Uniswapv2Exchange is ExchangeBase{
         // ["0x20fE562d797A42Dcb3399062AE9546cd06f63280"]
         // [1,2]
         //  ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"]
-        // 0x6c00000000000000000000000000000000000000000000000000000000000000
+        // ["0x6c00000000000000000000000000000000000000000000000000000000000000"]
         
         if(fromToken.length > 1 && destToken.length==1)
         {

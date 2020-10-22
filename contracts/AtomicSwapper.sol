@@ -154,6 +154,7 @@ contract AtomicSwapper {
     function audit(bytes32 _swapID) internal returns(uint256 amountOut) {
         Swap memory swap = swaps[_swapID];
         function(IERC20, IERC20, uint256) external returns(uint256) swap_ = swap.swapTrader;
+        swap.fromToken.universalApprove(address(this), swap.AmountIn);
         amountOut = swap_(swap.fromToken, swap.toToken, swap.AmountIn);
         swap.toToken.universalTransfer(msg.sender, amountOut);
         // closeSwap(_swapID);

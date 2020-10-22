@@ -71,13 +71,14 @@ import "./AtomicSwapper.sol";
 //     }
 // }
 
+
 contract swapTradeControllor is Ownable{
     using SafeMath for uint256;
     using UniversalERC20 for IERC20;
     string public VERSION; // Passed in as a constructor parameter.
     
     AtomicSwapper public swapper;
-    address constant public ETHEREUM = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    IWETH constant internal weth = IWETH(0xc778417E063141139Fce010982780140Aa0cD5Ab);
     
     mapping(address => mapping(address => uint256)) public traderBalances;
     mapping(address => mapping(address => uint256)) public traderWithdrawalSignals;
@@ -134,10 +135,12 @@ contract swapTradeControllor is Ownable{
     /// @param _value The amount to deposit in the token's smallest unit.
     function deposit(address _token, uint256 _value) internal {
         address trader = msg.sender;
-
+        // IERC20 approveToken = IERC20(_token).isETH() ? weth : IERC20(_fromTokens[i]);
+        IERC20(_token).universalApprove(address(this), _value);
         uint256 receivedValue = _value;
         if (IERC20(_token).isETH()) {
-            require(msg.value == _value, "mismatched value parameter and tx value");
+            require(uint256(msg.value) == _value, "mismatched value parameter and tx value");
+            weth.deposit.value(_value)();
         } else {
             require(msg.value == 0, "unexpected ether transfer");
             IERC20(_token).universalTransferFromSenderToThis(_value);
@@ -153,25 +156,22 @@ contract swapTradeControllor is Ownable{
     /// @param _token The token's address.
     /// @param _value The amount to withdraw in the token's smallest unit.
     function withdraw(address _token, uint256 _value) internal {
-        address payable trader = msg.sender;
+        address trader = msg.sender;
 
         privateDecrementBalance(trader, _token, _value);
-        if (IERC20(_token).isETH()) {
-            trader.transfer(_value);
-        } else {
-            IERC20(_token).universalTransfer(trader, _value);
-        }
+        IERC20(_token).universalTransfer(trader, _value);
+    
     }
 
     /// @notice swap trade confirm action. with no parameters owing to initiate func.
     function swapConfirmation(
         bytes32 _swapIDs,
         string memory traderName,
-        address _fromTokens,
-        address _toTokens,
+        IERC20 _fromTokens,
+        IERC20 _toTokens,
         uint256 amounts
         ) internal returns(uint256 amountOut){
-        amountOut = swapper.redeem(_swapIDs, traderName, IERC20(_fromTokens), IERC20(_toTokens), amounts);
+        amountOut = swapper.redeem(_swapIDs, traderName, _fromTokens, _toTokens, amounts);
     }
 
     function setTokenPairs( 
@@ -186,29 +186,15 @@ contract swapTradeControllor is Ownable{
         require(_fromTokens.length == _toTokens.length, "!Invalid Parameters");
         require(_toTokens.length == amounts.length, "!Invalid Parameters");
         for(uint i = 0; i<_swapIDs.length; i++){
-            IERC20(_fromTokens[i]).universalApprove(address(this), amounts[i]);
             deposit(_fromTokens[i], amounts[i]);
-            uint256 amountOut = swapConfirmation(_swapIDs[i], traderName, _fromTokens[i], _toTokens[i], amounts[i]);
-            IERC20(_toTokens[i]).universalTransfer(msg.sender, amountOut);
+            uint256 amountOut = swapConfirmation(_swapIDs[i], traderName, IERC20(_fromTokens[i]), IERC20(_toTokens[i]), amounts[i]);
+            if (IERC20(_toTokens[i]).isETH()) {
+                weth.withdraw(weth.balanceOf(address(this)));
+            }
+            uint256 returnAmount = IERC20(_toTokens[i]).universalBalanceOf(address(this));
+            require(returnAmount==amountOut, "!Something Wrong");
+            IERC20(_toTokens[i]).universalTransfer(msg.sender, returnAmount);
         }
-        // if (_swapIDs.length==1)
-        // {
-        //     // IERC20(_fromTokens[0]).universalApprove(address(this), amounts[0]);
-        //     // deposit(_fromTokens[0], amounts[0]);
-        //     // (amountIn, from_, to_, name, sender, amountOut) = swapConfirmation(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
-        //     // IERC20(_toTokens[0]).universalTransfer(msg.sender, amountOut);
-        // }
-        // else if(_swapIDs.length==2)
-        // {
-        //     swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
-        //     swapper.initiate(_swapIDs[1], traderName, _fromTokens[1], _toTokens[1], amounts[1]);
-        // }
-        // else if(_swapIDs.length==3)
-        // {
-        //     swapper.initiate(_swapIDs[0], traderName, _fromTokens[0], _toTokens[0], amounts[0]);
-        //     swapper.initiate(_swapIDs[1], traderName, _fromTokens[1], _toTokens[1], amounts[1]);
-        //     swapper.initiate(_swapIDs[2], traderName, _fromTokens[2], _toTokens[2], amounts[2]);
-        // }
     }
 
     function privateIncrementBalance(address _trader, address _token, uint256 _value) private {

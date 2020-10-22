@@ -20,7 +20,7 @@ contract DexExchangePlatform{
     using UniversalERC20 for IERC20;
     using SafeMath for uint256;
     using UniswapV2ExchangeLib for IUniswapV2Exchange;
-    // using UniversalERC20 for IWETH;
+
     
     //WETH address, mainnet and ropsten testnet address are bellow.
     // IWETH constant internal weth = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
@@ -65,14 +65,18 @@ contract DexExchangePlatform{
         uint256 amount
     ) external returns(uint256 returnAmount) {
         
-        IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
+        // if (fromToken.isETH()) {
+        //     weth.deposit.value(amount)();
+        // }
+        
+        // IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
         IERC20 toTokenReal = destToken.isETH() ? weth : destToken;
         
-        fromTokenReal.universalTransferFrom(msg.sender, address(this), amount);
-        uint256 remainingAmount = fromTokenReal.universalBalanceOf(address(this));
+        fromToken.universalTransferFrom(msg.sender, address(this), amount);
+        uint256 remainingAmount = fromToken.universalBalanceOf(address(this));
         require(remainingAmount == amount, "!Invalid Transfer");
-        IUniswapV2Exchange exchange = uniswapV2.getPair(fromTokenReal, toTokenReal);
-        fromTokenReal.universalApprove(address(exchange), remainingAmount);
+        IUniswapV2Exchange exchange = uniswapV2.getPair(fromToken, toTokenReal);
+        // fromTokenReal.universalApprove(address(exchange), remainingAmount);
         bool needSync;
         bool needSkim;
         (returnAmount, needSync, needSkim) = exchange.getReturn(fromToken, destToken, amount);
@@ -89,8 +93,10 @@ contract DexExchangePlatform{
         } else {
             exchange.swap(returnAmount, 0, address(this), "");
         }
-        
-        destToken.universalTransfer(msg.sender, returnAmount);
+        // if (destToken.isETH()) {
+        //     weth.withdraw(weth.balanceOf(address(this)));
+        // }
+        toTokenReal.universalTransfer(msg.sender, returnAmount);
         // fromToken.universalTransfer(msg.sender, fromToken.universalBalanceOf(address(this)));
     }
 }
