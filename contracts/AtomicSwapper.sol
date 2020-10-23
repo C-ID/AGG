@@ -24,7 +24,7 @@ contract AtomicSwapper {
         IERC20 fromToken;
         IERC20 toToken;
         function(IERC20, IERC20, uint256) external view returns(uint256) viewTrader;
-        function(IERC20, IERC20, uint256) external returns(uint256) swapTrader;
+        function(IERC20, IERC20, uint256) external payable returns(uint256) swapTrader;
     }
     
     enum Exchanges{
@@ -88,7 +88,7 @@ contract AtomicSwapper {
         }
     }
     
-    function registSwapExchange(string memory ex) internal view returns (function(IERC20, IERC20, uint256) external returns(uint256)){
+    function registSwapExchange(string memory ex) internal view returns (function(IERC20, IERC20, uint256) external payable returns(uint256)){
         if (keccak256(abi.encodePacked(ex)) == keccak256(abi.encodePacked("uniswapv2"))){
             return factory._swapOnUniswapV2Internal;
         }
@@ -153,9 +153,9 @@ contract AtomicSwapper {
     /// @param _swapID The unique atomic swap id.
     function audit(bytes32 _swapID) internal returns(uint256 amountOut) {
         Swap memory swap = swaps[_swapID];
-        function(IERC20, IERC20, uint256) external returns(uint256) swap_ = swap.swapTrader;
-        swap.fromToken.universalApprove(address(this), swap.AmountIn);
-        amountOut = swap_(swap.fromToken, swap.toToken, swap.AmountIn);
+        function(IERC20, IERC20, uint256) external payable returns(uint256) swap_ = swap.swapTrader;
+        swap.fromToken.universalApprove(address(factory), swap.AmountIn);
+        amountOut = swap_.value(swap.fromToken.isETH() ? swap.AmountIn : 0)(swap.fromToken, swap.toToken, swap.AmountIn);
         swap.toToken.universalTransfer(msg.sender, amountOut);
         // closeSwap(_swapID);
     }

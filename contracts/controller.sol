@@ -171,9 +171,9 @@ contract swapTradeControllor is Ownable{
         ) internal returns(uint256 amountOut){
         // _fromToken.isETH() ? msg.sender.transfer(msg.value) : _fromTokens.universalTransferFromSenderToThis(amount);
         deposit(_fromToken, amount);
-        uint256 confirmed = traderBalances[msg.sender][_fromToken];
-        IERC20(_fromToken).universalApprove(address(swapper), confirmed);
-        amountOut = swapper.redeem.value(IERC20(_fromToken).isETH() ? confirmed : 0)(_swapIDs, traderName, IERC20(_fromToken), IERC20(_toToken), amount);
+        // uint256 confirmed = traderBalances[msg.sender][_fromToken];
+        // IERC20(_fromToken).universalApprove(address(swapper), confirmed);
+        // amountOut = swapper.redeem.value(IERC20(_fromToken).isETH() ? confirmed : 0)(_swapIDs, traderName, IERC20(_fromToken), IERC20(_toToken), amount);
     }
 
     function setTokenPairs( 
@@ -193,9 +193,9 @@ contract swapTradeControllor is Ownable{
             // // if (IERC20(_toTokens[i]).isETH()) {
             // //     weth.withdraw(weth.balanceOf(address(this)));
             // // }
-            uint256 returnAmount = IERC20(_toTokens[i]).universalBalanceOf(address(this));
-            require(returnAmount==amountOut, "!Something Wrong");
-            IERC20(_toTokens[i]).universalTransfer(msg.sender, returnAmount);
+            // uint256 returnAmount = IERC20(_toTokens[i]).universalBalanceOf(address(this));
+            // require(returnAmount==amountOut, "!Something Wrong");
+            // IERC20(_toTokens[i]).universalTransfer(msg.sender, returnAmount);
             // msg.sender.transfer(msg.value);
             // require(msg.value==amounts[i], "Wrong");
             // privateIncrementBalance(msg.sender, _fromTokens[i], msg.value);

@@ -63,11 +63,11 @@ contract DexExchangePlatform{
         IERC20 fromToken,
         IERC20 destToken,
         uint256 amount
-    ) external returns(uint256 returnAmount) {
+    ) external payable returns(uint256 returnAmount) {
         
-        // if (fromToken.isETH()) {
-        //     weth.deposit.value(amount)();
-        // }
+        if (fromToken.isETH()) {
+            weth.deposit.value(amount)();
+        }
         
         // IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
         IERC20 toTokenReal = destToken.isETH() ? weth : destToken;
