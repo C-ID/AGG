@@ -130,12 +130,12 @@ contract AtomicSwapper {
         IERC20 _fromToken,
         IERC20 _toToken,
         uint256 amount
-        ) external returns(uint256 amountOut) {
+        ) external payable returns(uint256 amountOut) {
         
         /* solium-disable-next-line security/no-block-members */
         redeemedTime[swapID] = now;
-        _fromToken.universalApprove(address(this), amount);
-        _fromToken.universalTransferFrom(msg.sender, address(this), amount);
+        // _fromToken.universalApprove(address(this), amount);
+        _fromToken.universalTransferFromSenderToThis(amount);
         uint256 remainingAmount = _fromToken.universalBalanceOf(address(this));
         require(remainingAmount == amount, "!Invalid Transfer");
         

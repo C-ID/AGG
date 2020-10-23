@@ -135,12 +135,10 @@ contract swapTradeControllor is Ownable{
     /// @param _value The amount to deposit in the token's smallest unit.
     function deposit(address _token, uint256 _value) internal {
         address trader = msg.sender;
-        // IERC20 approveToken = IERC20(_token).isETH() ? weth : IERC20(_fromTokens[i]);
-        IERC20(_token).universalApprove(address(this), _value);
         uint256 receivedValue = _value;
         if (IERC20(_token).isETH()) {
-            require(uint256(msg.value) == _value, "mismatched value parameter and tx value");
-            weth.deposit.value(_value)();
+            require(msg.value == _value, "mismatched value parameter and tx value");
+            msg.sender.transfer(msg.value);
         } else {
             require(msg.value == 0, "unexpected ether transfer");
             IERC20(_token).universalTransferFromSenderToThis(_value);
@@ -167,11 +165,15 @@ contract swapTradeControllor is Ownable{
     function swapConfirmation(
         bytes32 _swapIDs,
         string memory traderName,
-        IERC20 _fromTokens,
-        IERC20 _toTokens,
-        uint256 amounts
+        address _fromToken,
+        address _toToken,
+        uint256 amount
         ) internal returns(uint256 amountOut){
-        amountOut = swapper.redeem(_swapIDs, traderName, _fromTokens, _toTokens, amounts);
+        // _fromToken.isETH() ? msg.sender.transfer(msg.value) : _fromTokens.universalTransferFromSenderToThis(amount);
+        deposit(_fromToken, amount);
+        uint256 confirmed = traderBalances[msg.sender][_fromToken];
+        IERC20(_fromToken).universalApprove(address(swapper), confirmed);
+        amountOut = swapper.redeem.value(IERC20(_fromToken).isETH() ? confirmed : 0)(_swapIDs, traderName, IERC20(_fromToken), IERC20(_toToken), amount);
     }
 
     function setTokenPairs( 
@@ -186,14 +188,17 @@ contract swapTradeControllor is Ownable{
         require(_fromTokens.length == _toTokens.length, "!Invalid Parameters");
         require(_toTokens.length == amounts.length, "!Invalid Parameters");
         for(uint i = 0; i<_swapIDs.length; i++){
-            deposit(_fromTokens[i], amounts[i]);
-            uint256 amountOut = swapConfirmation(_swapIDs[i], traderName, IERC20(_fromTokens[i]), IERC20(_toTokens[i]), amounts[i]);
-            if (IERC20(_toTokens[i]).isETH()) {
-                weth.withdraw(weth.balanceOf(address(this)));
-            }
+            // deposit(_fromTokens[i], amounts[i]);
+            uint256 amountOut = swapConfirmation(_swapIDs[i], traderName, _fromTokens[i], _toTokens[i], amounts[i]);
+            // // if (IERC20(_toTokens[i]).isETH()) {
+            // //     weth.withdraw(weth.balanceOf(address(this)));
+            // // }
             uint256 returnAmount = IERC20(_toTokens[i]).universalBalanceOf(address(this));
             require(returnAmount==amountOut, "!Something Wrong");
             IERC20(_toTokens[i]).universalTransfer(msg.sender, returnAmount);
+            // msg.sender.transfer(msg.value);
+            // require(msg.value==amounts[i], "Wrong");
+            // privateIncrementBalance(msg.sender, _fromTokens[i], msg.value);
         }
     }
 
