@@ -60,45 +60,50 @@ contract DexExchangePlatform{
     }
 
     function _swapOnUniswapV2Internal(
-        IERC20 fromToken,
-        IERC20 destToken,
+        address fromToken,
+        address destToken,
         uint256 amount
     ) external payable returns(uint256 returnAmount) {
-        
-        if (fromToken.isETH()) {
+
+        IERC20(fromToken).universalTransferFrom(msg.sender, address(this), amount);
+        if (IERC20(fromToken).isETH()) {
             weth.deposit.value(amount)();
         }
         
-        // IERC20 fromTokenReal = fromToken.isETH() ? weth : fromToken;
-        IERC20 toTokenReal = destToken.isETH() ? weth : destToken;
+        IERC20 fromTokenReal = IERC20(fromToken).isETH() ? weth : IERC20(fromToken);
+        IERC20 toTokenReal = IERC20(destToken).isETH() ? weth : IERC20(destToken);
         
-        fromToken.universalTransferFrom(msg.sender, address(this), amount);
-        uint256 remainingAmount = fromToken.universalBalanceOf(address(this));
+        uint256 remainingAmount = fromTokenReal.universalBalanceOf(address(this));
+     
         require(remainingAmount == amount, "!Invalid Transfer");
-        IUniswapV2Exchange exchange = uniswapV2.getPair(fromToken, toTokenReal);
-        // fromTokenReal.universalApprove(address(exchange), remainingAmount);
+        IUniswapV2Exchange exchange = uniswapV2.getPair(fromTokenReal, toTokenReal);
+        fromTokenReal.universalApprove(address(exchange), remainingAmount);
         bool needSync;
         bool needSkim;
-        (returnAmount, needSync, needSkim) = exchange.getReturn(fromToken, destToken, amount);
+        (returnAmount, needSync, needSkim) = exchange.getReturn(fromTokenReal, toTokenReal, amount);
         if (needSync) {
-            exchange.sync();
+            // exchange.sync();
         }
         else if (needSkim) {
-            exchange.skim(0x68a17B587CAF4f9329f0e372e3A78D23A46De6b5);
+            // exchange.skim(0x68a17B587CAF4f9329f0e372e3A78D23A46De6b5);
         }
 
-        fromToken.universalTransfer(address(exchange), amount);
+        fromTokenReal.universalTransfer(address(exchange), amount);
         if (uint256(address(fromToken)) < uint256(address(destToken))) {
             exchange.swap(0, returnAmount, address(this), "");
         } else {
             exchange.swap(returnAmount, 0, address(this), "");
         }
-        // if (destToken.isETH()) {
-        //     weth.withdraw(weth.balanceOf(address(this)));
-        // }
+        if (toTokenReal.isETH()) {
+            weth.withdraw(weth.balanceOf(address(this)));
+        }
         toTokenReal.universalTransfer(msg.sender, returnAmount);
-        // fromToken.universalTransfer(msg.sender, fromToken.universalBalanceOf(address(this)));
+        fromTokenReal.universalTransfer(msg.sender, fromTokenReal.universalBalanceOf(address(this)));
     }
+    
+    // function test() external view returns(uint256 a){
+    //     a = address(this).balanceof(IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE));
+    // }
 }
 
 

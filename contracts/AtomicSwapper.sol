@@ -21,10 +21,10 @@ contract AtomicSwapper {
         uint256 AmountIn;
         address payable openTrader;
         string exchangeName;
-        IERC20 fromToken;
-        IERC20 toToken;
+        address fromToken;
+        address toToken;
         function(IERC20, IERC20, uint256) external view returns(uint256) viewTrader;
-        function(IERC20, IERC20, uint256) external payable returns(uint256) swapTrader;
+        function(address, address, uint256) external payable returns(uint256) swapTrader;
     }
     
     enum Exchanges{
@@ -88,7 +88,7 @@ contract AtomicSwapper {
         }
     }
     
-    function registSwapExchange(string memory ex) internal view returns (function(IERC20, IERC20, uint256) external payable returns(uint256)){
+    function registSwapExchange(string memory ex) internal view returns (function(address, address, uint256) external payable returns(uint256)){
         if (keccak256(abi.encodePacked(ex)) == keccak256(abi.encodePacked("uniswapv2"))){
             return factory._swapOnUniswapV2Internal;
         }
@@ -100,8 +100,8 @@ contract AtomicSwapper {
     function initiate(
         bytes32 _swapID,
         string memory traderName,
-        IERC20 _fromToken,
-        IERC20 _toToken,
+        address _fromToken,
+        address _toToken,
         uint256 amount
     ) internal onlyInvalidSwaps(_swapID) {
         // Store the details of the swap.
@@ -127,16 +127,15 @@ contract AtomicSwapper {
     function redeem(
         bytes32 swapID,
         string calldata traderName,
-        IERC20 _fromToken,
-        IERC20 _toToken,
+        address _fromToken,
+        address _toToken,
         uint256 amount
         ) external payable returns(uint256 amountOut) {
         
         /* solium-disable-next-line security/no-block-members */
         redeemedTime[swapID] = now;
-        // _fromToken.universalApprove(address(this), amount);
-        _fromToken.universalTransferFromSenderToThis(amount);
-        uint256 remainingAmount = _fromToken.universalBalanceOf(address(this));
+        IERC20(_fromToken).universalTransferFrom(msg.sender, address(this), amount);
+        uint256 remainingAmount = IERC20(_fromToken).universalBalanceOf(address(this));
         require(remainingAmount == amount, "!Invalid Transfer");
         
         initiate(swapID, traderName, _fromToken, _toToken, amount);
@@ -153,10 +152,10 @@ contract AtomicSwapper {
     /// @param _swapID The unique atomic swap id.
     function audit(bytes32 _swapID) internal returns(uint256 amountOut) {
         Swap memory swap = swaps[_swapID];
-        function(IERC20, IERC20, uint256) external payable returns(uint256) swap_ = swap.swapTrader;
-        swap.fromToken.universalApprove(address(factory), swap.AmountIn);
-        amountOut = swap_.value(swap.fromToken.isETH() ? swap.AmountIn : 0)(swap.fromToken, swap.toToken, swap.AmountIn);
-        swap.toToken.universalTransfer(msg.sender, amountOut);
+        function(address, address, uint256) external payable returns(uint256) swap_ = swap.swapTrader;
+        IERC20(swap.fromToken).universalApprove(address(factory), swap.AmountIn);
+        amountOut = swap_.value(IERC20(swap.fromToken).isETH() ? swap.AmountIn : 0)(swap.fromToken, swap.toToken, swap.AmountIn);
+        IERC20(swap.toToken).universalTransfer(msg.sender, amountOut);
         // closeSwap(_swapID);
     }
 
