@@ -7,70 +7,6 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contr
 import "../interfaces/uniswapv2/IUniswapV2Factory.sol";
 import "./UniversalERC20.sol";
 import "./AtomicSwapper.sol";
-// import "./uniswapv2/uniswapv2Exchange.sol";
-
-
-
-// contract Controller is Ownable{
-
-//     string public exchangeName;
-//     using UniversalERC20 for IERC20;
-//     using SafeMath for uint256;
-//     mapping (address => uint256) public warehouse;
-//     Uniswapv2Exchange public uniswapv2;
-//     uint256 public confirmed;
-//     uint256 public confirmed_;
-    
-//     function() external payable {
-//         // solium-disable-next-line security/no-tx-origin
-//         require(msg.sender != tx.origin);
-//     }
-//     constructor() public {
-//         registExchange();
-//     }
-
-//     function registExchange() internal view{ 
-//         warehouse["uniswapv2"] = new Uniswapv2Exchange();
-//     }
-
-//     function setExchange(string memory _exchangename) public {
-//         exchangeName = _exchangename;
-//     }
-
-//     function getMulitExpectedReturn(
-//         IERC20[] memory fromToken,
-//         IERC20[] memory destToken,
-//         uint256[] memory amount
-//     )
-//         public
-//         view
-//         returns(
-//             uint256[] memory returnAmount
-//         )
-//     {
-//         // require(fromToken.length <=3 || destToken <= 3 || amount <=3, "!Invalid Parameter");
-//         // require(msg.sender == exchangeName, "!exchange");
-//         returnAmount = warehouse[exchangeName]._getMulitExpectedReturn(fromToken, destToken, amount);
-//     }
-
-
-//     function muiltSwap(
-//         IERC20[] memory fromToken,
-//         IERC20[] memory destToken,
-//         uint256[] memory amount
-//     )
-//         public
-//         payable
-//         returns(
-//             uint256 returnAmount
-//         )
-//     {
-//         require(fromToken.length <=3 || destToken <= 3 || amount <=3, "!Invalid Parameter");
-//         require(msg.sender == exchangeName, "!exchange name");
-//         warehouse[exchangeName]._muiltSwap(fromToken, destToken, amount);
-//     }
-// }
-
 
 contract swapTradeControllor is Ownable{
     using SafeMath for uint256;
@@ -139,32 +75,15 @@ contract swapTradeControllor is Ownable{
         for(uint i=0; i<_token.length; i++){
             uint256 receivedValue  = _value[i];
             if (IERC20(_token[i]).isETH()) {
-                require(msg.value >= _value[i], "mismatched value parameter and tx value");
-                // msg.sender.transfer(msg.value);
-                
+                require(msg.value >= _value[i], "!Invalid parameter");
             } else {
-                require(msg.value == 0, "unexpected ether transfer");
+                require(msg.value == 0, "Unexpected ether transfer");
                 IERC20(_token[i]).transferFrom(msg.sender, address(this), _value[i]);
             }
             privateIncrementBalance(trader, _token[i], receivedValue);
         }
     }
 
-    /// @notice Withdraws ETH or an ERC20 token from the contract. A broker
-    /// signature is required to guarantee that the trader has a sufficient
-    /// balance after accounting for open orders. As a trustless backup,
-    /// traders can withdraw 48 hours after calling `signalBackupWithdraw`.
-    ///
-    /// @param _token The token's address.
-    /// @param _value The amount to withdraw in the token's smallest unit.
-    function withdraw(address _token, uint256 _value) internal {
-        address trader = msg.sender;
-
-        privateDecrementBalance(trader, _token, _value);
-        IERC20(_token).universalTransfer(trader, _value);
-    
-    }
-    
     /// @notice swap trade confirm action. with no parameters owing to initiate func.
     function swapConfirmation(
         bytes32 _swapIDs,
@@ -194,22 +113,13 @@ contract swapTradeControllor is Ownable{
         require(_toTokens.length == amounts.length, "!Invalid Parameters");
         deposit(_fromTokens, amounts);
         for(uint i = 0; i<_swapIDs.length; i++){
-            // deposit(_fromTokens[i], amounts[i]);
             uint256 amountOut = swapConfirmation(_swapIDs[i], traderName, _fromTokens[i], _toTokens[i], amounts[i]);
-            
             uint256 returnAmount = IERC20(_toTokens[i]).universalBalanceOf(address(this));
-            require(returnAmount==amountOut, "!Something Wrong");
+            require(returnAmount==amountOut, "!Transfer must equal");
             IERC20(_toTokens[i]).universalTransfer(msg.sender, amountOut);
-            // msg.sender.transfer(msg.value);
-            // require(msg.value==amounts[i], "Wrong");
-            // privateIncrementBalance(msg.sender, _fromTokens[i], msg.value);
         }
     }
     
-    function getBalance () public view returns (uint256){
-        return address(this).balance;  // 获取合约地址的余额
-    }
-
     function privateIncrementBalance(address _trader, address _token, uint256 _value) private {
         traderBalances[_trader][_token] = traderBalances[_trader][_token].add(_value);
 

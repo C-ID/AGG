@@ -101,9 +101,98 @@ contract DexExchangePlatform{
         fromTokenReal.universalTransfer(msg.sender, fromTokenReal.universalBalanceOf(address(this)));
     }
     
-    // function test() external view returns(uint256 a){
-    //     a = address(this).balanceof(IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE));
+    //Balancer swap strategy are bellow
+    function _swapOnBalancerX(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount,
+        uint256 /*flags*/,
+        uint256 poolIndex
+    ) internal {
+        address[] memory pools = balancerRegistry.getBestPoolsWithLimit(
+            address(fromToken.isETH() ? weth : fromToken),
+            address(destToken.isETH() ? weth : destToken),
+            poolIndex + 1
+        );
+
+        if (fromToken.isETH()) {
+            weth.deposit.value(amount)();
+        }
+
+        (fromToken.isETH() ? weth : fromToken).universalApprove(pools[poolIndex], amount);
+        IBalancerPool(pools[poolIndex]).swapExactAmountIn(
+            fromToken.isETH() ? weth : fromToken,
+            amount,
+            destToken.isETH() ? weth : destToken,
+            0,
+            uint256(-1)
+        );
+
+        if (destToken.isETH()) {
+            weth.withdraw(weth.balanceOf(address(this)));
+        }
+    }
+
+    function _swapOnBalancer1(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount,
+        uint256 flags
+    ) internal {
+        _swapOnBalancerX(fromToken, destToken, amount, flags, 0);
+    }
+
+    function _swapOnBalancer2(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount
+    ) internal {
+        _swapOnBalancerX(fromToken, destToken, amount, flags, 1);
+    }
+
+    function _swapOnBalancer3(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount
+    ) internal {
+        _swapOnBalancerX(fromToken, destToken, amount, flags, 2);
+    }
+    
+    // //Aave swap
+    // function _aaveSwap(
+    //     IERC20 fromToken,
+    //     IERC20 destToken,
+    //     uint256 amount
+    // ) private {
+    //     if (fromToken == destToken) {
+    //         return;
+    //     }
+    //     IERC20 underlying = aaveRegistry.tokenByAToken(IAaveToken(address(fromToken)));
+    //     if (underlying != IERC20(0)) {
+    //         IAaveToken(address(fromToken)).redeem(amount);
+    //         return _aaveSwap(
+    //             underlying,
+    //             destToken,
+    //             amount,
+    //             distribution,
+    //             flags
+    //         );
+    //     }
+
+    //     underlying = aaveRegistry.tokenByAToken(IAaveToken(address(destToken)));
+    //     if (underlying != IERC20(0)) {
+
+    //         uint256 underlyingAmount = underlying.universalBalanceOf(address(this));
+
+    //         underlying.universalApprove(aave.core(), underlyingAmount);
+    //         aave.deposit.value(underlying.isETH() ? underlyingAmount : 0)(
+    //             underlying.isETH() ? ETH_ADDRESS : underlying,
+    //             underlyingAmount,
+    //             1101
+    //         );
+    //     }
     // }
+    
 }
 
 
