@@ -87,37 +87,47 @@ contract swapTradeControllor is Ownable{
     /// @notice swap trade confirm action. with no parameters owing to initiate func.
     function swapConfirmation(
         bytes32 _swapIDs,
-        string memory traderName,
+        // string memory traderName,
         address _fromToken,
         address _toToken,
         uint256 amount
-        ) public payable returns(uint256 amountOut){
+        ) private returns(uint256 amountOut){
         // deposit(_fromToken, amount);
         // uint256 confirmed = traderBalances[msg.sender][_fromToken];
         // uint256 confirmed = IERC20(_fromToken).universalBalanceOf(address(this));
+        string memory traderName = "uniswapv2";
         uint256 confirmed = address(this).balance;
         IERC20(_fromToken).universalApprove(address(swapper), amount);
         amountOut = swapper.redeem.value(IERC20(_fromToken).isETH() ? amount : 0)(_swapIDs, traderName, _fromToken, _toToken, amount);
     }
 
     function setTokenPairs( 
-        bytes32[] calldata _swapIDs,
-        string calldata traderName,
-        address[] calldata _fromTokens,
-        address[] calldata _toTokens,
-        uint256[] calldata amounts
+        // bytes32[] calldata _swapIDs,
+        // string calldata traderName,
+        // address calldata _fromTokens,
+        // address calldata _toTokens,
+        // uint256 calldata amounts
+         address _fromTokens,
+        address _toTokens,
+        uint256 amounts
     ) external payable {
-        require(_swapIDs.length<=3, "!Invalid Parameters");
-        require(_swapIDs.length == _fromTokens.length, "!Invalid Parameters");
-        require(_fromTokens.length == _toTokens.length, "!Invalid Parameters");
-        require(_toTokens.length == amounts.length, "!Invalid Parameters");
-        deposit(_fromTokens, amounts);
-        for(uint i = 0; i<_swapIDs.length; i++){
-            uint256 amountOut = swapConfirmation(_swapIDs[i], traderName, _fromTokens[i], _toTokens[i], amounts[i]);
-            uint256 returnAmount = IERC20(_toTokens[i]).universalBalanceOf(address(this));
-            require(returnAmount==amountOut, "!Transfer must equal");
-            IERC20(_toTokens[i]).universalTransfer(msg.sender, amountOut);
-        }
+        // require(_swapIDs.length<=3, "!Invalid Parameters");
+        // require(_swapIDs.length == _fromTokens.length, "!Invalid Parameters");
+        // require(_fromTokens.length == _toTokens.length, "!Invalid Parameters");
+        // require(_toTokens.length == amounts.length, "!Invalid Parameters");
+        // deposit(_fromTokens, amounts);
+        bytes32 _swapIDs = "HelloStackOverFlow";
+        // for(uint i = 0; i<_swapIDs.length; i++){
+        //     // uint256 amountOut = swapConfirmation(_swapIDs[i], traderName, _fromTokens[i], _toTokens[i], amounts[i]);
+        //     uint256 amountOut = swapConfirmation(_swapIDs[i], _fromTokens[i], _toTokens[i], amounts[i]);
+        //     uint256 returnAmount = IERC20(_toTokens[i]).universalBalanceOf(address(this));
+        //     require(returnAmount==amountOut, "!Transfer must equal");
+        //     IERC20(_toTokens[i]).universalTransfer(msg.sender, amountOut);
+        // }
+        uint256 amountOut = swapConfirmation(_swapIDs, _fromTokens, _toTokens, amounts);
+        uint256 returnAmount = IERC20(_toTokens).universalBalanceOf(address(this));
+        require(returnAmount==amountOut, "!Transfer must equal");
+        IERC20(_toTokens).universalTransfer(msg.sender, amountOut);
     }
     
     function privateIncrementBalance(address _trader, address _token, uint256 _value) private {
