@@ -65,7 +65,6 @@ contract DexExchangePlatform{
         uint256 amount
     ) public payable returns(uint256 returnAmount) {
 
-        IERC20(fromToken).universalTransferFrom(msg.sender, address(this), amount);
         if (IERC20(fromToken).isETH()) {
             weth.deposit.value(amount)();
         }
