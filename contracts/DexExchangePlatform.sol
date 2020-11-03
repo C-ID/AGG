@@ -29,7 +29,7 @@ contract DexExchangePlatform{
     IUniswapV2Factory constant internal uniswapV2 = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
 
     //balancer exchange address
-    // IBalancerRegistry constant internal balancerRegistry = IBalancerRegistry(0x65e67cbc342712DF67494ACEfc06fe951EE93982);
+    IBalancerRegistry constant internal balancerRegistry = IBalancerRegistry(0x65e67cbc342712DF67494ACEfc06fe951EE93982);
     
     //uniswapv2 swap strategy are bellow
     function _calculateUniswapV2(
@@ -101,61 +101,60 @@ contract DexExchangePlatform{
     }
     
     //Balancer swap strategy are bellow
-    // function _swapOnBalancerX(
-    //     IERC20 fromToken,
-    //     IERC20 destToken,
-    //     uint256 amount,
-    //     uint256 /*flags*/,
-    //     uint256 poolIndex
-    // ) internal {
-    //     address[] memory pools = balancerRegistry.getBestPoolsWithLimit(
-    //         address(fromToken.isETH() ? weth : fromToken),
-    //         address(destToken.isETH() ? weth : destToken),
-    //         poolIndex + 1
-    //     );
+    function _swapOnBalancerX(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount,
+        uint256 poolIndex
+    ) internal {
+        address[] memory pools = balancerRegistry.getBestPoolsWithLimit(
+            address(fromToken.isETH() ? weth : fromToken),
+            address(destToken.isETH() ? weth : destToken),
+            poolIndex + 1
+        );
 
-    //     if (fromToken.isETH()) {
-    //         weth.deposit.value(amount)();
-    //     }
+        if (fromToken.isETH()) {
+            weth.deposit.value(amount)();
+        }
 
-    //     (fromToken.isETH() ? weth : fromToken).universalApprove(pools[poolIndex], amount);
-    //     IBalancerPool(pools[poolIndex]).swapExactAmountIn(
-    //         fromToken.isETH() ? weth : fromToken,
-    //         amount,
-    //         destToken.isETH() ? weth : destToken,
-    //         0,
-    //         uint256(-1)
-    //     );
+        (fromToken.isETH() ? weth : fromToken).universalApprove(pools[poolIndex], amount);
+        IBalancerPool(pools[poolIndex]).swapExactAmountIn(
+            fromToken.isETH() ? weth : fromToken,
+            amount,
+            destToken.isETH() ? weth : destToken,
+            0,
+            uint256(-1)
+        );
 
-    //     if (destToken.isETH()) {
-    //         weth.withdraw(weth.balanceOf(address(this)));
-    //     }
-    // }
+        if (destToken.isETH()) {
+            weth.withdraw(weth.balanceOf(address(this)));
+        }
+    }
 
-    // function _swapOnBalancer1(
-    //     IERC20 fromToken,
-    //     IERC20 destToken,
-    //     uint256 amount,
-    //     uint256 flags
-    // ) internal {
-    //     _swapOnBalancerX(fromToken, destToken, amount, flags, 0);
-    // }
+    function _swapOnBalancer1(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount,
+        uint256 flags
+    ) internal {
+        _swapOnBalancerX(fromToken, destToken, amount, 0);
+    }
 
-    // function _swapOnBalancer2(
-    //     IERC20 fromToken,
-    //     IERC20 destToken,
-    //     uint256 amount
-    // ) internal {
-    //     _swapOnBalancerX(fromToken, destToken, amount, flags, 1);
-    // }
+    function _swapOnBalancer2(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount
+    ) internal {
+        _swapOnBalancerX(fromToken, destToken, amount, 1);
+    }
 
-    // function _swapOnBalancer3(
-    //     IERC20 fromToken,
-    //     IERC20 destToken,
-    //     uint256 amount
-    // ) internal {
-    //     _swapOnBalancerX(fromToken, destToken, amount, flags, 2);
-    // }
+    function _swapOnBalancer3(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount
+    ) internal {
+        _swapOnBalancerX(fromToken, destToken, amount, 2);
+    }
     
     // //Aave swap
     // function _aaveSwap(
