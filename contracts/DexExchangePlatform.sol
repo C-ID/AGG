@@ -24,12 +24,14 @@ contract DexExchangePlatform{
     
     //WETH address, mainnet and ropsten testnet address are bellow.
     // IWETH constant internal weth = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    IWETH constant internal weth = IWETH(0xc778417E063141139Fce010982780140Aa0cD5Ab);
+    // IWETH constant internal weth = IWETH(0xc778417E063141139Fce010982780140Aa0cD5Ab);
+    IWETH constant internal weth = IWETH(0xd0A1E359811322d97991E03f863a0C30C2cF029C);
     //uniswapv2 exchange address
     IUniswapV2Factory constant internal uniswapV2 = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
 
     //balancer exchange address
-    IBalancerRegistry constant internal balancerRegistry = IBalancerRegistry(0x65e67cbc342712DF67494ACEfc06fe951EE93982);
+    // IBalancerRegistry constant internal balancerRegistry = IBalancerRegistry(0x65e67cbc342712DF67494ACEfc06fe951EE93982);
+    IBalancerPool constant internal balancerPool = IBalancerPool(0x8f7F78080219d4066A8036ccD30D588B416a40DB);
     
     //uniswapv2 swap strategy are bellow
     function _calculateUniswapV2(
@@ -106,7 +108,7 @@ contract DexExchangePlatform{
         IERC20 destToken,
         uint256 amount,
         uint256 poolIndex
-    ) internal {
+    ) public payable {
         address[] memory pools = balancerRegistry.getBestPoolsWithLimit(
             address(fromToken.isETH() ? weth : fromToken),
             address(destToken.isETH() ? weth : destToken),
@@ -157,39 +159,39 @@ contract DexExchangePlatform{
     }
     
     // //Aave swap
-    // function _aaveSwap(
-    //     IERC20 fromToken,
-    //     IERC20 destToken,
-    //     uint256 amount
-    // ) private {
-    //     if (fromToken == destToken) {
-    //         return;
-    //     }
-    //     IERC20 underlying = aaveRegistry.tokenByAToken(IAaveToken(address(fromToken)));
-    //     if (underlying != IERC20(0)) {
-    //         IAaveToken(address(fromToken)).redeem(amount);
-    //         return _aaveSwap(
-    //             underlying,
-    //             destToken,
-    //             amount,
-    //             distribution,
-    //             flags
-    //         );
-    //     }
+    function _aaveSwap(
+        IERC20 fromToken,
+        IERC20 destToken,
+        uint256 amount
+    ) private {
+        if (fromToken == destToken) {
+            return;
+        }
+        IERC20 underlying = aaveRegistry.tokenByAToken(IAaveToken(address(fromToken)));
+        if (underlying != IERC20(0)) {
+            IAaveToken(address(fromToken)).redeem(amount);
+            return _aaveSwap(
+                underlying,
+                destToken,
+                amount,
+                distribution,
+                flags
+            );
+        }
 
-    //     underlying = aaveRegistry.tokenByAToken(IAaveToken(address(destToken)));
-    //     if (underlying != IERC20(0)) {
+        underlying = aaveRegistry.tokenByAToken(IAaveToken(address(destToken)));
+        if (underlying != IERC20(0)) {
 
-    //         uint256 underlyingAmount = underlying.universalBalanceOf(address(this));
+            uint256 underlyingAmount = underlying.universalBalanceOf(address(this));
 
-    //         underlying.universalApprove(aave.core(), underlyingAmount);
-    //         aave.deposit.value(underlying.isETH() ? underlyingAmount : 0)(
-    //             underlying.isETH() ? ETH_ADDRESS : underlying,
-    //             underlyingAmount,
-    //             1101
-    //         );
-    //     }
-    // }
+            underlying.universalApprove(aave.core(), underlyingAmount);
+            aave.deposit.value(underlying.isETH() ? underlyingAmount : 0)(
+                underlying.isETH() ? ETH_ADDRESS : underlying,
+                underlyingAmount,
+                1101
+            );
+        }
+    }
     
 }
 

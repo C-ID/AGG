@@ -26,6 +26,7 @@ contract swapTradeControllorV2 is Ownable, DexExchangePlatform{
     uint256 internal constant FLAG_ONE2MULIT = 0x1000000;
     uint256 internal constant FLAG_MULIT2ONE = 0x2000000;
     
+
     // Events
     event LogBalanceDecreased(address trader, address token, uint256 value);
     event LogBalanceIncreased(address trader, address token, uint256 value);
@@ -37,7 +38,7 @@ contract swapTradeControllorV2 is Ownable, DexExchangePlatform{
         VERSION = _VERSION;
     }
 
-    function setTokenPairs( 
+    function setTokenPairs(
         address[] calldata TokenList,
         uint256[] calldata amounts,
         string calldata flags
