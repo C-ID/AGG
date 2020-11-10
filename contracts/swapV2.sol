@@ -23,10 +23,6 @@ contract swapTradeControllorV2 is Ownable, DexExchangePlatform{
     
     mapping(address => mapping(address => uint256)) public traderBalances;
     
-    uint256 internal constant FLAG_ONE2MULIT = 0x1000000;
-    uint256 internal constant FLAG_MULIT2ONE = 0x2000000;
-    
-
     // Events
     event LogBalanceDecreased(address trader, address token, uint256 value);
     event LogBalanceIncreased(address trader, address token, uint256 value);
@@ -54,6 +50,18 @@ contract swapTradeControllorV2 is Ownable, DexExchangePlatform{
             for(uint i=0; i<TokenList.length-1; i++){
                 _swapOnUniswapV2Internal(TokenList[i], TokenList[TokenList.length], amounts[i]);
             }
+        }
+    }
+    
+    function muiltSwap(
+        address[] calldata fromTokenList,
+        address[] calldata toTokenList,
+        uint256[] calldata amounts
+    ) external payable {
+        require(fromTokenList.length == toTokenList.length, "!InValid Parameters");
+        require(fromTokenList.length == amounts.length, "!InValid Parameters");
+        for(uint i=0; i<fromTokenList.length; i++){
+            _swapOnUniswapV2Internal(fromTokenList[i], toTokenList[i], amounts[i]);
         }
     }
     
