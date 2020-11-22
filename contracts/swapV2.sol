@@ -13,14 +13,14 @@ library DisableFlags {
     }
 }
 
-contract swapTradeControllorV2 is Ownable, DexExchangePlatform{
+contract swapTradeControllorV2 is Ownable{
     using SafeMath for uint256;
     using UniversalERC20 for IERC20;
     using SafeERC20 for IERC20;
     using DisableFlags for uint256;
     
     string public VERSION; // Passed in as a constructor parameter.
-    
+    DexExchangePlatform public platform;
     mapping(address => mapping(address => uint256)) public traderBalances;
     
     // Events
@@ -29,29 +29,31 @@ contract swapTradeControllorV2 is Ownable, DexExchangePlatform{
 
     
     constructor(
-        string memory _VERSION
+        string memory _VERSION,
+        DexExchangePlatform _platform
     ) public {
         VERSION = _VERSION;
+        platform = _platform;
     }
-
-    function setTokenPairs(
-        address[] calldata TokenList,
-        uint256[] calldata amounts,
-        string calldata flags
-    ) external payable{
-        require(TokenList.length==amounts.length + 1, "!");
-        if(keccak256(abi.encodePacked(flags)) == keccak256(abi.encodePacked("1vM"))){
-            for(uint i=1; i<TokenList.length; i++){
-                _swapOnUniswapV2Internal(TokenList[0], TokenList[i], amounts[i-1]);
-            }
-        }
-        else if(keccak256(abi.encodePacked(flags)) == keccak256(abi.encodePacked("Mv1")))
-        {
-            for(uint i=0; i<TokenList.length-1; i++){
-                _swapOnUniswapV2Internal(TokenList[i], TokenList[TokenList.length], amounts[i]);
-            }
-        }
-    }
+    
+    // function setTokenPairs(
+    //     address[] calldata TokenList,
+    //     uint256[] calldata amounts,
+    //     string calldata flags
+    // ) external payable{
+    //     require(TokenList.length==amounts.length + 1, "!");
+    //     if(keccak256(abi.encodePacked(flags)) == keccak256(abi.encodePacked("1vM"))){
+    //         for(uint i=1; i<TokenList.length; i++){
+    //             _swapOnUniswapV2Internal(TokenList[0], TokenList[i], amounts[i-1]);
+    //         }
+    //     }
+    //     else if(keccak256(abi.encodePacked(flags)) == keccak256(abi.encodePacked("Mv1")))
+    //     {
+    //         for(uint i=0; i<TokenList.length-1; i++){
+    //             _swapOnUniswapV2Internal(TokenList[i], TokenList[TokenList.length], amounts[i]);
+    //         }
+    //     }
+    // }
     
     function muiltSwap(
         address[] calldata fromTokenList,
@@ -61,7 +63,13 @@ contract swapTradeControllorV2 is Ownable, DexExchangePlatform{
         require(fromTokenList.length == toTokenList.length, "!InValid Parameters");
         require(fromTokenList.length == amounts.length, "!InValid Parameters");
         for(uint i=0; i<fromTokenList.length; i++){
-            _swapOnUniswapV2Internal(fromTokenList[i], toTokenList[i], amounts[i]);
+            if(!IERC20(fromTokenList[i]).isETH())
+            {
+                IERC20(fromTokenList[i]).safeTransferFrom(msg.sender, address(this), amounts[i]);
+                IERC20(fromTokenList[i]).universalApprove(address(platform), amounts[i]);
+            }
+            platform._swapOnUniswapV2Internal.value(IERC20(fromTokenList[i]).isETH() ? amounts[i] : 0)(fromTokenList[i], toTokenList[i], amounts[i]);
+            IERC20(toTokenList[i]).universalTransfer(msg.sender, IERC20(toTokenList[i]).universalBalanceOf(address(this)));
         }
     }
     

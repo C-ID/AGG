@@ -12,7 +12,7 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.5.0/contr
 contract IWETH is IERC20 {
     function deposit() external payable;
 
-    function withdraw(uint256 amount) external;
+    function withdraw(uint amount) external;
 }
 
 
@@ -20,6 +20,7 @@ contract DexExchangePlatform{
     
     using UniversalERC20 for IERC20;
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
     using UniswapV2ExchangeLib for IUniswapV2Exchange;
 
     
@@ -31,7 +32,7 @@ contract DexExchangePlatform{
     IUniswapV2Factory constant internal uniswapV2 = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
 
     //balancer exchange address
-    // IBRegistry constant internal balancerRegistry = IBRegistry(0xC5570FC7C828A8400605e9843106aBD675006093);
+    // IBRegistry constant internal balancerRegistry = IBRegistry(0xC5570FC7C828A8400605e9843106aBD675006093)
     
     //uniswapv2 swap strategy are bellow
     function _calculateUniswapV2(
@@ -66,9 +67,17 @@ contract DexExchangePlatform{
         address destToken,
         uint256 amount
     ) public payable returns(uint256 returnAmount) {
-
+        
         if (IERC20(fromToken).isETH()) {
             weth.deposit.value(amount)();
+        } else {
+            IERC20(fromToken).universalTransferFrom(msg.sender, address(this), amount);
+        }
+        
+        if(IERC20(fromToken).isETH() && destToken==address(weth)){
+            IERC20(destToken).safeTransfer(msg.sender, amount);
+            IERC20(fromToken).universalTransfer(msg.sender, IERC20(fromToken).universalBalanceOf(address(this)));
+            return amount;
         }
         
         IERC20 fromTokenReal = IERC20(fromToken).isETH() ? weth : IERC20(fromToken);
@@ -78,7 +87,6 @@ contract DexExchangePlatform{
      
         require(remainingAmount == amount, "!Invalid Transfer");
         IUniswapV2Exchange exchange = uniswapV2.getPair(fromTokenReal, toTokenReal);
-        // fromTokenReal.universalApprove(address(exchange), remainingAmount);
         bool needSync;
         bool needSkim;
         (returnAmount, needSync, needSkim) = exchange.getReturn(fromTokenReal, toTokenReal, amount);
@@ -95,11 +103,16 @@ contract DexExchangePlatform{
         } else {
             exchange.swap(returnAmount, 0, address(this), "");
         }
-        if (toTokenReal.isETH()) {
-            weth.withdraw(weth.balanceOf(address(this)));
+        
+        if (IERC20(destToken).isETH()) {
+            uint wethOut = weth.balanceOf(address(this));
+            // weth.withdraw(wethOut);
+            msg.sender.transfer(wethOut);
+        } else {
+            IERC20(destToken).safeTransfer(msg.sender, IERC20(destToken).universalBalanceOf(address(this)));
         }
-        toTokenReal.universalTransfer(msg.sender, returnAmount);
-        fromTokenReal.universalTransfer(msg.sender, fromTokenReal.universalBalanceOf(address(this)));
+        
+        IERC20(fromToken).universalTransfer(msg.sender, IERC20(fromToken).universalBalanceOf(address(this)));
     }
     
     //Balancer swap strategy are bellow

@@ -84,7 +84,11 @@ library UniversalERC20 {
             return token.balanceOf(who);
         }
     }
-
+    
+    // function safeTransferETH(address to, uint256 value) internal {
+    //     (bool success, ) = to.call{value: value}(new bytes(0));
+    //     require(success, 'TransferHelper::safeTransferETH: ETH transfer failed');
+    // }
 
     function isETH(IERC20 token) internal pure returns(bool) {
         return (address(token) == address(ZERO_ADDRESS) || address(token) == address(ETH_ADDRESS));
